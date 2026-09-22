@@ -1,0 +1,14 @@
+section,label,metric,n,missing,min,q25,median,q75,max
+status,done,count,248,,,,,,
+spine_axis,0,spine_axis_angle_deg,89,0,0.000,0.406,1.056,1.835,4.468
+spine_axis,1,spine_axis_angle_deg,10,0,0.550,1.979,2.804,3.508,4.170
+hip_rotation,0,hip_lesser_prominence_mm,112,2,0.000,1.305,2.811,4.100,7.141
+hip_rotation,0,hip_lesser_prominence_ratio,112,2,0.000,0.033,0.068,0.106,0.189
+hip_rotation,1,hip_lesser_prominence_mm,28,7,0.088,1.286,6.635,7.242,15.340
+hip_rotation,1,hip_lesser_prominence_ratio,28,7,0.002,0.044,0.153,0.175,0.248
+hip_roi,0,hip_top_margin_mm,143,0,47.880,70.980,77.280,85.785,174.405
+hip_roi,0,hip_lateral_margin_mm,143,0,16.620,32.820,39.420,50.400,124.200
+hip_roi,0,hip_bottom_margin_mm,143,0,35.070,78.120,92.295,112.245,162.015
+hip_roi,1,hip_top_margin_mm,6,0,64.680,65.730,69.405,78.855,79.905
+hip_roi,1,hip_lateral_margin_mm,6,0,22.620,27.420,36.180,50.580,51.420
+hip_roi,1,hip_bottom_margin_mm,5,1,32.445,35.595,37.170,59.220,90.720

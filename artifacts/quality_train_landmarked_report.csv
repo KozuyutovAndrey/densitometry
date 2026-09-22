@@ -1,0 +1,13 @@
+split,target,n,tp,fp,fn,tn,precision,recall,specificity,f1,balanced_accuracy
+ALL,quality,248,39,31,32,146,0.557,0.549,0.825,0.553,0.687
+ALL,spine_positioning,99,5,1,1,92,0.833,0.833,0.989,0.833,0.911
+ALL,spine_axis,99,7,18,3,71,0.280,0.700,0.798,0.400,0.749
+ALL,spine_artifact,99,15,2,2,80,0.882,0.882,0.976,0.882,0.929
+ALL,hip_positioning_rotation,149,10,15,25,99,0.400,0.286,0.868,0.333,0.577
+ALL,hip_roi,149,0,3,6,140,0.000,0.000,0.979,,0.490
+train,quality,248,39,31,32,146,0.557,0.549,0.825,0.553,0.687
+train,spine_positioning,99,5,1,1,92,0.833,0.833,0.989,0.833,0.911
+train,spine_axis,99,7,18,3,71,0.280,0.700,0.798,0.400,0.749
+train,spine_artifact,99,15,2,2,80,0.882,0.882,0.976,0.882,0.929
+train,hip_positioning_rotation,149,10,15,25,99,0.400,0.286,0.868,0.333,0.577
+train,hip_roi,149,0,3,6,140,0.000,0.000,0.979,,0.490

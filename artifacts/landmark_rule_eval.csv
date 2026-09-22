@@ -1,0 +1,12 @@
+task,rule,threshold,n,tp,fp,tn,fn,accuracy,precision,recall,specificity,f1,balanced_accuracy
+hip_positioning_rotation,lesser_prominence_mm_ge_threshold_missing_bad,4.4700,50,27,3,12,8,0.780,0.900,0.771,0.800,0.831,0.786
+hip_positioning_rotation,lesser_ratio_ge_threshold_missing_bad,0.1121,50,27,3,12,8,0.780,0.900,0.771,0.800,0.831,0.786
+hip_roi,composite_any_margin_le_threshold_missing_bad,top<=64.942;lateral<=24.600;bottom<=40.845,50,6,4,40,0,0.920,0.600,1.000,0.909,0.750,0.955
+hip_roi,bottom_margin_mm_le_threshold,59.2725,50,5,8,36,1,0.820,0.385,0.833,0.818,0.526,0.826
+hip_roi,top_margin_mm_le_threshold,70.4025,50,4,13,31,2,0.700,0.235,0.667,0.705,0.348,0.686
+hip_roi,lateral_margin_mm_le_threshold,27.6000,50,2,1,43,4,0.900,0.667,0.333,0.977,0.444,0.655
+hip_roi,tz_margins_top30_bottom30_lateral20_missing_bad,fixed,50,1,1,43,5,0.880,0.500,0.167,0.977,0.250,0.572
+spine_axis,angle_deg_ge_threshold,1.9070,41,8,6,25,2,0.805,0.571,0.800,0.806,0.667,0.803
+spine_axis,max_deviation_mm_ge_threshold,2.8630,41,6,11,20,4,0.634,0.353,0.600,0.645,0.444,0.623
+spine_axis,mean_deviation_mm_ge_threshold,0.4395,41,10,24,7,0,0.415,0.294,1.000,0.226,0.455,0.613
+spine_positioning,bad_if_l5_or_iliac_missing,fixed,41,5,0,35,1,0.976,1.000,0.833,1.000,0.909,0.917

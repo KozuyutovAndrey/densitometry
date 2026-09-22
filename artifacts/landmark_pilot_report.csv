@@ -1,0 +1,21 @@
+section,metric,value
+total,rows,91
+by_group,hip,50
+by_group,spine,41
+by_region,left_hip,26
+by_region,right_hip,24
+by_region,spine,41
+by_reason,bad_label,71
+by_reason,good_control,20
+by_quality,hip / 0,10
+by_quality,hip / 1,40
+by_quality,spine / 0,10
+by_quality,spine / 1,31
+by_violation,<none>,20
+by_violation,hip_positioning_rotation,34
+by_violation,hip_positioning_rotation;hip_roi,1
+by_violation,hip_roi,5
+by_violation,spine_artifact,15
+by_violation,spine_axis,8
+by_violation,spine_axis;spine_artifact,2
+by_violation,spine_positioning,6

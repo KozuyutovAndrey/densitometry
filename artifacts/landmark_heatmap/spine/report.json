@@ -1,0 +1,31 @@
+{
+  "region": "spine",
+  "keys": [
+    "spine_th12_center",
+    "spine_l1_center",
+    "spine_l2_center",
+    "spine_l3_center",
+    "spine_l4_center",
+    "spine_l5_center",
+    "spine_left_iliac_crest",
+    "spine_right_iliac_crest"
+  ],
+  "train_rows": 79,
+  "val_rows": 20,
+  "image_size": 256,
+  "epochs": 80,
+  "best_metrics": {
+    "mean_error_mm": 58.96626529340378,
+    "median_error_mm": 52.74777640154442,
+    "p90_error_mm": 133.49214227585662,
+    "n_points": 153.0,
+    "spine_th12_center_mean_error_mm": 44.34929873430845,
+    "spine_l1_center_mean_error_mm": 37.65633145348988,
+    "spine_l2_center_mean_error_mm": 59.985933857958614,
+    "spine_l3_center_mean_error_mm": 34.27501498163223,
+    "spine_l4_center_mean_error_mm": 43.8883152758253,
+    "spine_l5_center_mean_error_mm": 78.53024543048578,
+    "spine_left_iliac_crest_mean_error_mm": 40.88939753348752,
+    "spine_right_iliac_crest_mean_error_mm": 131.3917703659407
+  }
+}

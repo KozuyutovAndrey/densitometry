@@ -1,0 +1,49 @@
+section,metric,value
+rows,manual_review_total,502
+rows,clean_total,254
+rows_by_split,test,3
+rows_by_split,train,251
+rows_by_region,left_hip,79
+rows_by_region,right_hip,75
+rows_by_region,spine,100
+rows_by_split_region,test / left_hip,1
+rows_by_split_region,test / right_hip,1
+rows_by_split_region,test / spine,1
+rows_by_split_region,train / left_hip,78
+rows_by_split_region,train / right_hip,74
+rows_by_split_region,train / spine,99
+excluded_manual_region,duplicate,245
+excluded_manual_region,spine,2
+excluded_manual_region,unknown,1
+label_status,labeled,248
+label_status,missing_region_label,3
+label_status,unlabeled_test,3
+left_hip_quality_class,0,56
+left_hip_quality_class,1,21
+left_hip_quality_class,<empty>,1
+right_hip_quality_class,0,53
+right_hip_quality_class,1,19
+right_hip_quality_class,<empty>,2
+spine_quality_class,0,68
+spine_quality_class,1,31
+spine_criterion_spine_positioning,0,93
+spine_criterion_spine_positioning,1,6
+spine_criterion_spine_axis,0,89
+spine_criterion_spine_axis,1,10
+spine_criterion_spine_artifact,0,82
+spine_criterion_spine_artifact,1,17
+right_hip_criterion_right_hip_positioning_rotation,0,55
+right_hip_criterion_right_hip_positioning_rotation,1,17
+right_hip_criterion_right_hip_positioning_rotation,<empty>,2
+right_hip_criterion_right_hip_roi,0,69
+right_hip_criterion_right_hip_roi,1,3
+right_hip_criterion_right_hip_roi,<empty>,2
+left_hip_criterion_left_hip_positioning_rotation,0,59
+left_hip_criterion_left_hip_positioning_rotation,1,18
+left_hip_criterion_left_hip_positioning_rotation,<empty>,1
+left_hip_criterion_left_hip_roi,0,74
+left_hip_criterion_left_hip_roi,1,3
+left_hip_criterion_left_hip_roi,<empty>,1
+issues,label_without_canonical_image,1
+issues,missing_region_label,3
+issues,total,4

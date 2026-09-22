@@ -1,0 +1,3 @@
+split,n,correct,accuracy
+train,120,118,0.983
+val,32,32,1.000

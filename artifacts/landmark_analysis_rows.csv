@@ -1,0 +1,92 @@
+pilot_id,image_number,pilot_group,anatomical_region,quality_class,violation_type,annotation_status,spine_axis_label,hip_rotation_label,hip_roi_label,spine_axis_angle_deg,hip_lesser_prominence_mm,hip_lesser_prominence_ratio,hip_top_margin_mm,hip_lateral_margin_mm,hip_bottom_margin_mm,annotation_notes
+1,403,spine,spine,1,spine_artifact,done,0,,,0.140,,,,,,
+2,415,spine,spine,1,spine_axis,done,1,,,0.550,,,,,,
+3,422,spine,spine,1,spine_artifact,done,0,,,1.023,,,,,,
+4,432,spine,spine,1,spine_axis,done,1,,,3.554,,,,,,
+5,437,spine,spine,1,spine_axis;spine_artifact,done,1,,,2.804,,,,,,
+6,440,spine,spine,1,spine_artifact,done,0,,,1.294,,,,,,
+7,444,spine,spine,1,spine_positioning,done,0,,,0.134,,,,,,подвздошные гребни не видны
+8,451,spine,spine,1,spine_artifact,done,0,,,0.246,,,,,,
+9,468,spine,spine,1,spine_axis,done,1,,,2.908,,,,,,
+10,486,spine,spine,1,spine_artifact,done,0,,,2.856,,,,,,
+11,492,spine,spine,1,spine_positioning,done,0,,,0.000,,,,,,
+12,23,spine,spine,1,spine_axis,done,1,,,3.508,,,,,,
+13,52,spine,spine,1,spine_artifact,done,0,,,1.208,,,,,,
+14,72,spine,spine,1,spine_positioning,done,0,,,0.149,,,,,,гребни отсутствуют
+15,76,spine,spine,1,spine_axis,done,1,,,2.053,,,,,,
+16,216,spine,spine,1,spine_positioning,done,0,,,1.739,,,,,,L5 и гребни не видны
+17,264,spine,spine,1,spine_axis,done,1,,,3.436,,,,,,
+18,281,spine,spine,1,spine_artifact,done,0,,,2.037,,,,,,
+19,350,spine,spine,1,spine_axis,done,1,,,4.170,,,,,,
+20,364,spine,spine,1,spine_artifact,done,0,,,0.671,,,,,,
+21,366,spine,spine,1,spine_axis;spine_artifact,done,1,,,1.979,,,,,,
+22,390,spine,spine,1,spine_artifact,done,0,,,0.250,,,,,,
+23,399,spine,spine,1,spine_positioning,done,0,,,2.055,,,,,,L5 и гребней не видно
+24,42,spine,spine,1,spine_artifact,done,0,,,0.988,,,,,,
+25,88,spine,spine,1,spine_positioning,done,0,,,1.835,,,,,,правого гребня невидно
+26,162,spine,spine,1,spine_artifact,done,0,,,1.027,,,,,,
+27,186,spine,spine,1,spine_artifact,done,0,,,0.406,,,,,,
+28,225,spine,spine,1,spine_artifact,done,0,,,0.000,,,,,,
+29,257,spine,spine,1,spine_artifact,done,0,,,1.818,,,,,,
+30,324,spine,spine,1,spine_axis,done,1,,,1.320,,,,,,
+31,332,spine,spine,1,spine_artifact,done,0,,,0.125,,,,,,
+32,402,spine,spine,0,,done,0,,,0.000,,,,,,
+33,420,spine,spine,0,,done,0,,,0.959,,,,,,
+34,424,spine,spine,0,,done,0,,,3.540,,,,,,
+35,431,spine,spine,0,,done,0,,,1.702,,,,,,
+36,441,spine,spine,0,,done,0,,,1.359,,,,,,
+37,450,spine,spine,0,,done,0,,,4.468,,,,,,
+38,454,spine,spine,0,,done,0,,,0.437,,,,,,
+39,459,spine,spine,0,,done,0,,,0.977,,,,,,
+40,473,spine,spine,0,,done,0,,,2.026,,,,,,
+41,477,spine,spine,0,,done,0,,,1.042,,,,,,
+42,435,hip,right_hip,1,hip_positioning_rotation,done,1,1,0,,6.742,0.1472,69.825,53.400,56.175,
+43,436,hip,left_hip,1,hip_positioning_rotation,done,1,1,0,,5.447,0.1361,74.025,45.600,61.425,
+44,438,hip,right_hip,1,hip_positioning_rotation,done,0,1,0,,12.390,0.2101,129.150,31.800,108.150,
+45,439,hip,left_hip,1,hip_positioning_rotation,done,0,1,0,,11.897,0.2160,120.750,29.700,119.700,
+46,455,hip,left_hip,1,hip_positioning_rotation,done,0,1,0,,12.049,0.2237,68.775,46.800,49.875,
+47,458,hip,right_hip,1,hip_positioning_rotation,done,0,1,0,,15.340,0.2480,74.550,55.200,137.550,
+48,466,hip,left_hip,1,hip_positioning_rotation,done,1,1,0,,,,67.725,40.800,72.975,малый вертел не виден
+49,467,hip,right_hip,1,hip_positioning_rotation,done,1,1,0,,,,79.275,48.600,62.475,малый вертел не виден
+50,475,hip,left_hip,1,hip_positioning_rotation,done,0,1,0,,6.759,0.1633,86.625,39.000,59.325,
+51,476,hip,right_hip,1,hip_positioning_rotation,done,0,1,0,,7.661,0.1527,80.325,52.800,60.375,
+52,480,hip,right_hip,1,hip_positioning_rotation,done,0,1,0,,8.078,0.2185,77.175,37.800,86.625,
+53,3,hip,left_hip,1,hip_positioning_rotation,done,0,1,0,,0.088,0.0017,67.725,50.400,98.175,
+54,13,hip,left_hip,1,hip_positioning_rotation,done,0,1,0,,0.536,0.0126,70.875,43.200,86.625,
+55,24,hip,right_hip,1,hip_positioning_rotation,done,1,1,0,,6.635,0.1747,72.030,34.980,77.070,
+56,48,hip,right_hip,1,hip_positioning_rotation,done,0,1,0,,6.920,0.1382,95.655,48.780,122.745,
+57,49,hip,left_hip,1,hip_positioning_rotation,done,0,1,0,,6.792,0.1427,78.855,29.820,143.745,
+58,62,hip,right_hip,1,hip_positioning_rotation,done,0,1,0,,0.600,0.0150,67.830,44.580,68.670,
+59,63,hip,left_hip,1,hip_positioning_rotation,done,0,1,0,,0.200,0.0042,69.930,36.420,77.070,
+60,77,hip,left_hip,1,hip_positioning_rotation,done,1,1,0,,,,74.130,51.420,94.920,"похоже на перелом шейки бедра, малый вертел не видно"
+61,79,hip,right_hip,1,hip_positioning_rotation;hip_roi,done,1,1,1,,6.450,0.1809,79.905,50.580,,"седалищную кость невидно, изображение обрезано снизу"
+62,144,hip,left_hip,1,hip_positioning_rotation,done,0,1,0,,0.885,0.0191,168.105,34.020,83.895,
+63,215,hip,right_hip,1,hip_positioning_rotation,done,0,1,0,,7.242,0.1642,166.005,34.980,89.145,
+64,219,hip,left_hip,1,hip_positioning_rotation,done,0,1,0,,1.087,0.0390,75.180,65.820,81.270,
+65,262,hip,right_hip,1,hip_roi,done,1,0,1,,3.038,0.0711,69.930,36.180,37.170,
+66,334,hip,left_hip,1,hip_positioning_rotation,done,0,1,0,,,,73.605,53.220,157.395,Малый вертел невидно
+67,336,hip,right_hip,1,hip_positioning_rotation,done,0,1,0,,,,67.305,34.380,,малый вертел невидно
+68,351,hip,right_hip,1,hip_positioning_rotation,done,0,1,0,,6.346,0.1529,83.580,26.580,44.520,
+69,354,hip,left_hip,1,hip_positioning_rotation,done,0,1,0,,5.528,0.1234,63.630,39.420,35.070,
+70,371,hip,left_hip,1,hip_positioning_rotation,done,0,1,0,,6.409,0.1542,84.105,45.420,138.495,
+71,387,hip,left_hip,1,hip_roi,done,0,0,1,,0.284,0.0092,64.680,51.420,90.720,малый вертел еле видно
+72,87,hip,left_hip,1,hip_positioning_rotation,done,0,1,0,,0.722,0.0212,76.755,54.420,84.945,малый вертел еле видно
+73,90,hip,right_hip,1,hip_positioning_rotation,done,0,1,0,,,,84.105,63.780,84.945,малый вертел невидно
+74,93,hip,left_hip,1,hip_positioning_rotation,done,,1,0,,6.618,0.1538,92.505,61.620,130.095,
+75,94,hip,left_hip,1,hip_roi,done,0,0,1,,,,78.855,27.420,35.595,малый вертел не видно
+76,96,hip,right_hip,1,hip_roi,done,0,0,1,,,,69.405,39.180,32.445,"изображение обрезано снизу, невидно малого вертела"
+77,104,hip,left_hip,1,hip_roi,done,0,0,1,,7.141,0.1488,65.730,22.620,59.220,
+78,134,hip,right_hip,1,hip_positioning_rotation,done,0,1,0,,,,90.405,27.780,88.095,малый вертел невидно
+79,179,hip,right_hip,1,hip_positioning_rotation,done,0,1,0,,9.284,0.1829,84.630,48.180,57.120,
+80,181,hip,left_hip,1,hip_positioning_rotation,done,0,1,0,,7.153,0.1631,73.080,51.420,71.820,
+81,325,hip,right_hip,1,hip_positioning_rotation,done,1,1,0,,1.286,0.0437,79.380,53.580,35.070,
+82,404,hip,right_hip,0,,done,0,0,0,,3.250,0.0773,66.780,54.780,109.620,
+83,407,hip,left_hip,0,,done,0,0,0,,3.197,0.0772,68.880,53.220,111.720,
+84,416,hip,left_hip,0,,done,1,0,0,,0.630,0.0191,77.280,30.420,121.170,
+85,417,hip,right_hip,0,,done,1,0,0,,3.493,0.1008,66.780,28.980,122.220,
+86,418,hip,right_hip,0,,done,0,0,0,,1.100,0.0246,64.680,36.180,74.970,
+87,419,hip,left_hip,0,,done,0,0,0,,2.811,0.0697,87.780,43.620,53.970,
+88,423,hip,right_hip,0,,done,0,0,0,,1.067,0.0312,65.205,33.180,159.495,
+89,425,hip,left_hip,0,,done,0,0,0,,2.821,0.0739,78.330,29.820,151.620,
+90,429,hip,left_hip,0,,done,0,0,0,,0.885,0.0296,132.405,43.020,127.995,
+91,430,hip,right_hip,0,,done,0,0,0,,1.084,0.0274,153.405,51.780,114.345,

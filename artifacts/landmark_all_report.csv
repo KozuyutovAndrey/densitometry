@@ -1,0 +1,15 @@
+section,metric,value
+total,rows,248
+by_group,hip,149
+by_group,spine,99
+by_region,left_hip,77
+by_region,right_hip,72
+by_region,spine,99
+by_quality,hip / 0,109
+by_quality,hip / 1,40
+by_quality,spine / 0,68
+by_quality,spine / 1,31
+by_status,done,91
+by_status,new,157
+by_reason,bad_label,71
+by_reason,good_control,177

@@ -1,0 +1,57 @@
+audit_status,audit_decision,corrected_label,audit_notes,task,rule,error_kind,pilot_id,image_number,anatomical_region,expert_label,rule_prediction,value,threshold,violation_type,annotation_notes,study_folder
+,,,,hip_positioning_rotation,lesser_prominence_mm_ge_threshold_missing_bad,FN,7,436,left_hip,1,0,5.4470,6.2940,hip_positioning_rotation,,2.25.39068163399801173920284179500049527111
+,,,,hip_positioning_rotation,lesser_prominence_mm_ge_threshold_missing_bad,FN,18,3,left_hip,1,0,0.0880,6.2940,hip_positioning_rotation,,1.2.840.113619.2.110.512719.20250403090444
+,,,,hip_positioning_rotation,lesser_prominence_mm_ge_threshold_missing_bad,FN,20,13,left_hip,1,0,0.5360,6.2940,hip_positioning_rotation,,1.2.840.113619.2.110.512719.20250407113211
+,,,,hip_positioning_rotation,lesser_prominence_mm_ge_threshold_missing_bad,FN,24,63,left_hip,1,0,0.2000,6.2940,hip_positioning_rotation,,2.25.122446767306607067205618235949445789306
+,,,,hip_positioning_rotation,lesser_prominence_mm_ge_threshold_missing_bad,FN,29,144,left_hip,1,0,0.8850,6.2940,hip_positioning_rotation,,2.25.145848300160680194368420189079847088556
+,,,,hip_positioning_rotation,lesser_prominence_mm_ge_threshold_missing_bad,FN,32,219,left_hip,1,0,1.0870,6.2940,hip_positioning_rotation,,2.25.165091430504580219034019815337441064349
+,,,,hip_positioning_rotation,lesser_prominence_mm_ge_threshold_missing_bad,FN,39,354,left_hip,1,0,5.5280,6.2940,hip_positioning_rotation,,2.25.234651502352368356456298825489565282446
+,,,,hip_positioning_rotation,lesser_prominence_mm_ge_threshold_missing_bad,FN,52,87,left_hip,1,0,0.7220,6.2940,hip_positioning_rotation,малый вертел еле видно,2.25.128990540359421489042453547244535073735
+,,,,hip_positioning_rotation,lesser_prominence_mm_ge_threshold_missing_bad,FN,101,62,right_hip,1,0,0.6000,6.2940,hip_positioning_rotation,,2.25.122446767306607067205618235949445789306
+,,,,hip_positioning_rotation,lesser_prominence_mm_ge_threshold_missing_bad,FN,149,325,right_hip,1,0,1.2860,6.2940,hip_positioning_rotation,,2.25.190331309633057244929837507901317950031
+,,,,hip_positioning_rotation,lesser_prominence_mm_ge_threshold_missing_bad,FP,49,36,left_hip,0,1,6.7230,6.2940,,,2.25.105033841136787477881326326053319223817
+,,,,hip_positioning_rotation,lesser_prominence_mm_ge_threshold_missing_bad,FP,54,94,left_hip,0,1,,6.2940,hip_roi,малый вертел не видно,2.25.13069823278093578548407087310307113784
+,,,,hip_positioning_rotation,lesser_prominence_mm_ge_threshold_missing_bad,FP,56,104,left_hip,0,1,7.1410,6.2940,hip_roi,,2.25.13325817932854000792938662637654885530
+,,,,hip_positioning_rotation,lesser_prominence_mm_ge_threshold_missing_bad,FP,69,259,left_hip,0,1,6.7840,6.2940,,,2.25.172445998420765569384934552191547932566
+,,,,hip_positioning_rotation,lesser_prominence_mm_ge_threshold_missing_bad,FP,90,472,right_hip,0,1,6.6980,6.2940,,,2.25.76710355977373089612172037086913478687
+,,,,hip_positioning_rotation,lesser_prominence_mm_ge_threshold_missing_bad,FP,98,19,right_hip,0,1,6.9820,6.2940,,,2.25.10245777060263212829333021434108890537
+,,,,hip_positioning_rotation,lesser_prominence_mm_ge_threshold_missing_bad,FP,130,96,right_hip,0,1,,6.2940,hip_roi,"изображение обрезано снизу, невидно малого вертела",2.25.13069823278093578548407087310307113784
+,,,,hip_roi,composite_any_margin_le_threshold_missing_bad,FP,30,147,left_hip,0,1,top=62.580;lateral=50.220;bottom=121.170,top<=65.782;lateral<=16.620;bottom<=38.745,,,2.25.151186844055172005615813066162721550889
+,,,,hip_roi,composite_any_margin_le_threshold_missing_bad,FP,33,227,left_hip,0,1,top=64.680;lateral=34.020;bottom=93.870,top<=65.782;lateral<=16.620;bottom<=38.745,,,2.25.167344201679287285499405412654740659745
+,,,,hip_roi,composite_any_margin_le_threshold_missing_bad,FP,36,286,left_hip,0,1,top=64.680;lateral=59.220;bottom=70.770,top<=65.782;lateral<=16.620;bottom<=38.745,,,2.25.177745077805190810016231350557005569203
+,,,,hip_roi,composite_any_margin_le_threshold_missing_bad,FP,39,354,left_hip,0,1,top=63.630;lateral=39.420;bottom=35.070,top<=65.782;lateral<=16.620;bottom<=38.745,hip_positioning_rotation,,2.25.234651502352368356456298825489565282446
+,,,,hip_roi,composite_any_margin_le_threshold_missing_bad,FP,47,28,left_hip,0,1,top=63.630;lateral=34.620;bottom=71.820,top<=65.782;lateral<=16.620;bottom<=38.745,,,2.25.102965897799404973225419898683246248872
+,,,,hip_roi,composite_any_margin_le_threshold_missing_bad,FP,51,60,left_hip,0,1,top=47.880;lateral=78.420;bottom=81.270,top<=65.782;lateral<=16.620;bottom<=38.745,,,2.25.116822802042655971810859435524105064465
+,,,,hip_roi,composite_any_margin_le_threshold_missing_bad,FP,80,418,right_hip,0,1,top=64.680;lateral=36.180;bottom=74.970,top<=65.782;lateral<=16.620;bottom<=38.745,,,2.25.314147167453134440746270747484612743945
+,,,,hip_roi,composite_any_margin_le_threshold_missing_bad,FP,81,423,right_hip,0,1,top=65.205;lateral=33.180;bottom=159.495,top<=65.782;lateral<=16.620;bottom<=38.745,,,2.25.339027809107632348165171236474821772940
+,,,,hip_roi,composite_any_margin_le_threshold_missing_bad,FP,95,2,right_hip,0,1,top=60.585;lateral=39.600;bottom=76.965,top<=65.782;lateral<=16.620;bottom<=38.745,,,1.2.840.113619.2.110.512719.20250403090444
+,,,,hip_roi,composite_any_margin_le_threshold_missing_bad,FP,113,290,right_hip,0,1,top=64.785;lateral=50.400;bottom=64.365,top<=65.782;lateral<=16.620;bottom<=38.745,,,2.25.177745077805190810016231350557005569203
+,,,,hip_roi,composite_any_margin_le_threshold_missing_bad,FP,125,32,right_hip,0,1,top=65.310;lateral=36.600;bottom=137.340,top<=65.782;lateral<=16.620;bottom<=38.745,,,2.25.103868781101960771917584077315578649178
+,,,,hip_roi,composite_any_margin_le_threshold_missing_bad,FP,127,59,right_hip,0,1,top=53.235;lateral=63.000;bottom=76.965,top<=65.782;lateral<=16.620;bottom<=38.745,,,2.25.116822802042655971810859435524105064465
+,,,,hip_roi,composite_any_margin_le_threshold_missing_bad,FP,145,278,right_hip,0,1,top=64.785;lateral=19.200;bottom=120.015,top<=65.782;lateral<=16.620;bottom<=38.745,,,2.25.175903805423871105435148927871625232853
+,,,,hip_roi,composite_any_margin_le_threshold_missing_bad,FP,149,325,right_hip,0,1,top=79.380;lateral=53.580;bottom=35.070,top<=65.782;lateral<=16.620;bottom<=38.745,hip_positioning_rotation,,2.25.190331309633057244929837507901317950031
+,,,,spine_axis,angle_deg_ge_threshold,FN,152,415,spine,1,0,0.5500,1.9125,spine_axis,,2.25.309085571913348252136520206003694446566
+,,,,spine_axis,angle_deg_ge_threshold,FN,247,324,spine,1,0,1.3200,1.9125,spine_axis,,2.25.190331309633057244929837507901317950031
+,,,,spine_axis,angle_deg_ge_threshold,FP,155,424,spine,0,1,3.5400,1.9125,,,2.25.339027809107632348165171236474821772940
+,,,,spine_axis,angle_deg_ge_threshold,FP,162,450,spine,0,1,4.4680,1.9125,,,2.25.54396839637320114639948764487283877793
+,,,,spine_axis,angle_deg_ge_threshold,FP,167,473,spine,0,1,2.0260,1.9125,,,2.25.76710355977373089612172037086913478687
+,,,,spine_axis,angle_deg_ge_threshold,FP,171,486,spine,0,1,2.8560,1.9125,spine_artifact,,2.25.87869906212286587478854831452123526595
+,,,,spine_axis,angle_deg_ge_threshold,FP,179,47,spine,0,1,3.4420,1.9125,,,2.25.112621744005021908434051268014787122937
+,,,,spine_axis,angle_deg_ge_threshold,FP,186,102,spine,0,1,3.3280,1.9125,,,2.25.132272637351979990811754009849547633391
+,,,,spine_axis,angle_deg_ge_threshold,FP,193,220,spine,0,1,2.0120,1.9125,,,2.25.165091430504580219034019815337441064349
+,,,,spine_axis,angle_deg_ge_threshold,FP,196,281,spine,0,1,2.0370,1.9125,spine_artifact,,2.25.17706555930735581384953296958427669848
+,,,,spine_axis,angle_deg_ge_threshold,FP,200,341,spine,0,1,2.6310,1.9125,,,2.25.217397325224876728316360420804118329081
+,,,,spine_axis,angle_deg_ge_threshold,FP,205,368,spine,0,1,2.9480,1.9125,,,2.25.269742577365511543488820993979123763373
+,,,,spine_axis,angle_deg_ge_threshold,FP,206,370,spine,0,1,2.9360,1.9125,,,2.25.272690031744216183651627058502316132741
+,,,,spine_axis,angle_deg_ge_threshold,FP,207,380,spine,0,1,2.5730,1.9125,,,2.25.276415754443998872860614500027519740375
+,,,,spine_axis,angle_deg_ge_threshold,FP,210,399,spine,0,1,2.0550,1.9125,spine_positioning,L5 и гребней не видно,2.25.29638026465755240167985424461715024381
+,,,,spine_axis,angle_deg_ge_threshold,FP,211,421,spine,0,1,2.1310,1.9125,,,2.25.322202456901330781765399791024580391565
+,,,,spine_axis,angle_deg_ge_threshold,FP,213,33,spine,0,1,2.5170,1.9125,,,2.25.103868781101960771917584077315578649178
+,,,,spine_axis,angle_deg_ge_threshold,FP,214,34,spine,0,1,3.0660,1.9125,,,2.25.105033841136787477881326326053319223817
+,,,,spine_axis,angle_deg_ge_threshold,FP,219,82,spine,0,1,2.0140,1.9125,,,2.25.12798473087614376830819854616447908612
+,,,,spine_axis,angle_deg_ge_threshold,FP,223,98,spine,0,1,3.5320,1.9125,,,2.25.132083163398091874662674590622589534350
+,,,,spine_axis,angle_deg_ge_threshold,FP,224,103,spine,0,1,2.2610,1.9125,,,2.25.13325817932854000792938662637654885530
+,,,,spine_axis,angle_deg_ge_threshold,FP,241,274,spine,0,1,2.8640,1.9125,,,2.25.175881661753775295785039265792986971602
+,,,,spine_axis,angle_deg_ge_threshold,FP,243,292,spine,0,1,3.1210,1.9125,,,2.25.178533355209696795441380751187185128893
+,,,,spine_positioning,bad_if_l5_or_iliac_missing,FN,172,492,spine,1,0,,fixed,spine_positioning,,2.25.91981043841368764114007975581101713077
+,,,,spine_positioning,bad_if_l5_or_iliac_missing,FP,228,138,spine,0,1,,fixed,,,2.25.144941557565802351596730914409170713112

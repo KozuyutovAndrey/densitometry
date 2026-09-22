@@ -1,0 +1,3 @@
+study_folder,member,filename,manual_region,predicted_region,debug_message
+2.25.132272637351979990811754009849547633391,Исследования/2.25.132272637351979990811754009849547633391/series_003_3_CR/A2504141080 DXA/CR DXA/CR000000.dcm,CR000000.dcm,right_hip,left_hip,laterality_template left_dist=0.6275 right_dist=1.2745
+2.25.132272637351979990811754009849547633391,Исследования/2.25.132272637351979990811754009849547633391/series_003_3_CR/A2504141080 DXA/CR DXA/CR000001.dcm,CR000001.dcm,left_hip,right_hip,laterality_template left_dist=1.2258 right_dist=0.8970

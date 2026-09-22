@@ -1,0 +1,25 @@
+{
+  "task": "positioning",
+  "dataset_dir": "/home/s0ft44/projects/densitometry/artifacts/spine_positioning_dataset",
+  "label_col": "positioning_bad",
+  "out_dir": "/home/s0ft44/projects/densitometry/artifacts/spine_classifiers/positioning",
+  "device": "cuda",
+  "train_rows": 251,
+  "val_rows": 20,
+  "train_positive": 176,
+  "train_negative": 75,
+  "best_report": {
+    "threshold": 0.2895070016384125,
+    "tp": 1,
+    "fp": 0,
+    "fn": 1,
+    "tn": 18,
+    "precision": 1.0,
+    "recall": 0.5,
+    "specificity": 1.0,
+    "f1": 0.6666666666666666,
+    "balanced_accuracy": 0.75,
+    "accuracy": 0.95
+  },
+  "notes": "Val set is tiny; treat this as a sanity check, not a stable leaderboard estimate."
+}

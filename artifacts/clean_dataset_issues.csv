@@ -1,0 +1,5 @@
+issue_type,split,study_folder,manual_region,member,filename,details
+missing_region_label,train,2.25.11175860580562939441493697221497597640,right_hip,Исследования/2.25.11175860580562939441493697221497597640/series_003_2_CR/A2507431060 DXA/CR DXA/CR000000.dcm,CR000000.dcm,
+missing_region_label,train,2.25.12798473087614376830819854616447908612,left_hip,Исследования/2.25.12798473087614376830819854616447908612/series_002_2_CR/A2507538847 DXA/CR DXA/CR000001.dcm,CR000001.dcm,
+missing_region_label,train,2.25.12798473087614376830819854616447908612,right_hip,Исследования/2.25.12798473087614376830819854616447908612/series_002_2_CR/A2507538847 DXA/CR DXA/CR000002.dcm,CR000002.dcm,
+label_without_canonical_image,train,2.25.126293418391331346694592071563510265596,left_hip,,,"label exists for left_hip, but no canonical image is selected"

@@ -1,0 +1,25 @@
+{
+  "task": "artifact",
+  "dataset_dir": "/home/s0ft44/projects/densitometry/artifacts/spine_artifact_dataset",
+  "label_col": "artifact_bad",
+  "out_dir": "/home/s0ft44/projects/densitometry/artifacts/spine_classifiers/artifact",
+  "device": "cuda",
+  "train_rows": 90,
+  "val_rows": 20,
+  "train_positive": 22,
+  "train_negative": 68,
+  "best_report": {
+    "threshold": 0.23504738509655,
+    "tp": 5,
+    "fp": 1,
+    "fn": 1,
+    "tn": 13,
+    "precision": 0.8333333333333334,
+    "recall": 0.8333333333333334,
+    "specificity": 0.9285714285714286,
+    "f1": 0.8333333333333334,
+    "balanced_accuracy": 0.8809523809523809,
+    "accuracy": 0.9
+  },
+  "notes": "Val set is tiny; treat this as a sanity check, not a stable leaderboard estimate."
+}

@@ -1,0 +1,143 @@
+{
+  "model_type": "mean_normalized_landmarks",
+  "min_visibility": 0.5,
+  "pixel_spacing_x_mm": 0.6,
+  "pixel_spacing_y_mm": 1.05,
+  "regions": {
+    "spine": {
+      "n_train": 79,
+      "points": {
+        "spine_th12_center": {
+          "x_norm": 0.4735260625,
+          "y_norm": 0.072891015625,
+          "visibility": 0.810126582278481,
+          "predict_visible": true
+        },
+        "spine_l1_center": {
+          "x_norm": 0.4835738101265823,
+          "y_norm": 0.2145212151898734,
+          "visibility": 1.0,
+          "predict_visible": true
+        },
+        "spine_l2_center": {
+          "x_norm": 0.4895232278481012,
+          "y_norm": 0.38608946835443037,
+          "visibility": 1.0,
+          "predict_visible": true
+        },
+        "spine_l3_center": {
+          "x_norm": 0.4963164303797469,
+          "y_norm": 0.5576594430379747,
+          "visibility": 1.0,
+          "predict_visible": true
+        },
+        "spine_l4_center": {
+          "x_norm": 0.5018016582278481,
+          "y_norm": 0.7333565189873418,
+          "visibility": 1.0,
+          "predict_visible": true
+        },
+        "spine_l5_center": {
+          "x_norm": 0.5006363636363637,
+          "y_norm": 0.8845161688311688,
+          "visibility": 0.9746835443037974,
+          "predict_visible": true
+        },
+        "spine_left_iliac_crest": {
+          "x_norm": 0.10754222666666666,
+          "y_norm": 0.8462016133333333,
+          "visibility": 0.9493670886075949,
+          "predict_visible": true
+        },
+        "spine_right_iliac_crest": {
+          "x_norm": 0.8887116891891891,
+          "y_norm": 0.8315958648648649,
+          "visibility": 0.9367088607594937,
+          "predict_visible": true
+        }
+      }
+    },
+    "left_hip": {
+      "n_train": 62,
+      "points": {
+        "hip_greater_trochanter_top_edge": {
+          "x_norm": 0.6557546935483871,
+          "y_norm": 0.29107533870967744,
+          "visibility": 1.0,
+          "predict_visible": true
+        },
+        "hip_greater_trochanter_lateral_edge": {
+          "x_norm": 0.7479205161290322,
+          "y_norm": 0.45512998387096776,
+          "visibility": 1.0,
+          "predict_visible": true
+        },
+        "hip_lesser_trochanter_upper": {
+          "x_norm": 0.47772403389830503,
+          "y_norm": 0.588290033898305,
+          "visibility": 0.9516129032258065,
+          "predict_visible": true
+        },
+        "hip_lesser_trochanter_tip": {
+          "x_norm": 0.4775423728813559,
+          "y_norm": 0.6588597796610169,
+          "visibility": 0.9516129032258065,
+          "predict_visible": true
+        },
+        "hip_lesser_trochanter_lower": {
+          "x_norm": 0.5184625254237288,
+          "y_norm": 0.7266164237288135,
+          "visibility": 0.9516129032258065,
+          "predict_visible": true
+        },
+        "hip_ischium_edge": {
+          "x_norm": 0.19596201612903225,
+          "y_norm": 0.6835677903225806,
+          "visibility": 1.0,
+          "predict_visible": true
+        }
+      }
+    },
+    "right_hip": {
+      "n_train": 57,
+      "points": {
+        "hip_greater_trochanter_top_edge": {
+          "x_norm": 0.33858394736842107,
+          "y_norm": 0.2929246140350877,
+          "visibility": 1.0,
+          "predict_visible": true
+        },
+        "hip_greater_trochanter_lateral_edge": {
+          "x_norm": 0.24040101754385965,
+          "y_norm": 0.47346029824561403,
+          "visibility": 1.0,
+          "predict_visible": true
+        },
+        "hip_lesser_trochanter_upper": {
+          "x_norm": 0.5095833703703704,
+          "y_norm": 0.6015686296296296,
+          "visibility": 0.9473684210526315,
+          "predict_visible": true
+        },
+        "hip_lesser_trochanter_tip": {
+          "x_norm": 0.5074669814814815,
+          "y_norm": 0.6689391851851851,
+          "visibility": 0.9473684210526315,
+          "predict_visible": true
+        },
+        "hip_lesser_trochanter_lower": {
+          "x_norm": 0.46460975925925924,
+          "y_norm": 0.7403205555555556,
+          "visibility": 0.9473684210526315,
+          "predict_visible": true
+        },
+        "hip_ischium_edge": {
+          "x_norm": 0.7997576607142857,
+          "y_norm": 0.686653,
+          "visibility": 0.9824561403508771,
+          "predict_visible": true
+        }
+      }
+    }
+  }
+}
