@@ -13,3 +13,6 @@ wheels/
 # OS/editor
 .DS_Store
 .ipynb_checkpoints/
+
+# Local web viewer uploads and generated previews
+artifacts/viewer_jobs/
