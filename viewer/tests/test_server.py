@@ -53,6 +53,10 @@ class ViewerAdapterTests(unittest.TestCase):
             self.assertIn("--out-csv", command)
             self.assertIn("--work-dir", command)
 
+    def test_docker_image_does_not_force_cuda(self):
+        dockerfile = (server.ROOT / "Dockerfile").read_text()
+        self.assertNotIn("QC_DEVICE=cuda", dockerfile)
+
     def test_3d_is_enabled_with_existing_checkpoint(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -110,6 +114,13 @@ class ViewerAdapterTests(unittest.TestCase):
             sheet = archive.read("xl/worksheets/sheet1.xml").decode()
             self.assertIn("1&amp;2", sheet)
             self.assertIn("<v>0.25</v>", sheet)
+
+    def test_ui_has_blocking_processing_status(self):
+        html = (server.STATIC / "index.html").read_text()
+        script = (server.STATIC / "app.js").read_text()
+        self.assertIn('id="processing-overlay"', html)
+        self.assertIn("Идёт обработка исследований", script)
+        self.assertIn("updateProcessingOverlay", script)
 
 
 if __name__ == "__main__":
