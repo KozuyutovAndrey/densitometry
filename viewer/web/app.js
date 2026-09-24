@@ -96,8 +96,11 @@ function renderAll() {
   $("stat-failed").textContent = images.length ? images.length - good - bad : "—";
   $("batch-status").textContent = statusText(state.job);
   $("batch-status").className = state.job?.status === "failed" ? "error" : "";
-  $("export").hidden = state.job?.status !== "completed";
-  if (state.job) $("export").href = `/api/jobs/${encodeURIComponent(state.job.id)}/export.csv`;
+  for (const format of ["csv", "xlsx"]) {
+    const link = $(`export-${format}`);
+    link.hidden = state.job?.status !== "completed";
+    if (state.job) link.href = `/api/jobs/${encodeURIComponent(state.job.id)}/export.${format}`;
+  }
   renderList();
   renderTable();
   renderImageDetail();

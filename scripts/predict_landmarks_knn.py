@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import time
 import json
 import zipfile
 from pathlib import Path
@@ -200,7 +201,12 @@ def main() -> None:
     args = parse_args()
     image_size, k, matrix, model_rows = load_model(args.model_npz, args.model_json)
     rows = read_csv(args.input_csv)
-    out_rows = [predict_row(row, args.dicom_input, image_size, k, matrix, model_rows) for row in rows]
+    out_rows = []
+    for row in rows:
+        started = time.perf_counter()
+        result = predict_row(row, args.dicom_input, image_size, k, matrix, model_rows)
+        result["processing_seconds"] = f"{time.perf_counter() - started:.6f}"
+        out_rows.append(result)
     fieldnames = [
         "input_source",
         "study_key",
@@ -211,6 +217,7 @@ def main() -> None:
         "landmark_model",
         "landmark_status",
         "neighbor_pilot_ids",
+        "processing_seconds",
         *point_columns(),
     ]
     write_csv(args.out_csv, out_rows, fieldnames)
