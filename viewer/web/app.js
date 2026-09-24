@@ -3,6 +3,7 @@ const $ = (id) => document.getElementById(id);
 const state = {
   jobs: [], job: null, image: null, filtered: [], health: null,
   bitmap: null, zoom: 1, panX: 0, panY: 0, dragging: false, lastX: 0, lastY: 0,
+  pollTimer: null,
   view3d: { yaw: -0.6, pitch: 0.15, scale: 1, dragging: false, x: 0, y: 0 },
 };
 
@@ -43,12 +44,20 @@ function jobLabel(job) {
 }
 
 async function loadJobs(preserve = true) {
+  const previous = state.job ? { id: state.job.id, status: state.job.status } : null;
   const current = preserve && state.job ? state.job.id : null;
   state.jobs = await api("/api/jobs");
   state.job = state.jobs.find((job) => job.id === current) || state.jobs[0] || null;
   renderJobPicker();
   renderAll();
-  if (state.jobs.some((job) => ["queued", "running"].includes(job.status))) setTimeout(() => loadJobs(), 1800);
+  if (previous && previous.id === state.job?.id && ["queued", "running"].includes(previous.status)) {
+    if (state.job.status === "completed") showNotice(`Пакет «${state.job.name}» обработан. Результаты готовы.`);
+    if (state.job.status === "failed") showNotice(state.job.error || "Обработка завершилась с ошибкой.", true);
+  }
+  clearTimeout(state.pollTimer);
+  if (state.jobs.some((job) => ["queued", "running"].includes(job.status))) {
+    state.pollTimer = setTimeout(() => loadJobs().catch((error) => showNotice(`Связь с сервером потеряна: ${error.message}`, true)), 1800);
+  }
 }
 
 function renderJobPicker() {
@@ -101,9 +110,27 @@ function renderAll() {
     link.hidden = state.job?.status !== "completed";
     if (state.job) link.href = `/api/jobs/${encodeURIComponent(state.job.id)}/export.${format}`;
   }
+  updateProcessingOverlay();
   renderList();
   renderTable();
   renderImageDetail();
+}
+
+function updateProcessingOverlay() {
+  const overlay = $("processing-overlay");
+  const active = state.job && ["queued", "running"].includes(state.job.status);
+  overlay.hidden = !active;
+  document.body.classList.toggle("processing", Boolean(active));
+  if (!active) return;
+  const queued = state.job.status === "queued";
+  $("processing-title").textContent = queued ? "Исследование принято" : "Идёт обработка исследований";
+  $("processing-package").textContent = state.job.name;
+  $("processing-stage").textContent = queued ? "Ожидает запуска" : "Анализ DICOM";
+  $("processing-detail").textContent = queued
+    ? "Архив успешно загружен и поставлен в очередь."
+    : "Определяем область, строим landmarks и проверяем критерии качества.";
+  const elapsed = Math.max(0, Math.floor(Date.now() / 1000 - Number(state.job.created || Date.now() / 1000)));
+  $("processing-elapsed").textContent = elapsed < 60 ? `${elapsed} с` : `${Math.floor(elapsed / 60)} мин ${elapsed % 60} с`;
 }
 
 function chooseImage(image) {
@@ -353,13 +380,14 @@ function setupUpload() {
     $("upload-error").textContent=""; $("upload-progress").hidden=false; $("upload-submit").disabled=true;
     const xhr=new XMLHttpRequest(); xhr.open("POST","/api/jobs"); xhr.setRequestHeader("Content-Type","application/zip");xhr.setRequestHeader("X-Archive-Name",encodeURIComponent(selected.name));
     xhr.upload.onprogress=e=>{if(e.lengthComputable)$("upload-progress").value=e.loaded/e.total*100};
-    xhr.onload=async()=>{ $("upload-submit").disabled=false; try{const result=JSON.parse(xhr.responseText);if(xhr.status>=400)throw new Error(result.error||"Ошибка загрузки");dialog.close();file.value="";$("file-name").textContent="";state.job=result;await loadJobs(false);showNotice("Архив принят. Пакетная обработка поставлена в очередь.")}catch(error){$("upload-error").textContent=error.message} };
+    xhr.onload=async()=>{ $("upload-submit").disabled=false; try{const result=JSON.parse(xhr.responseText);if(xhr.status>=400)throw new Error(result.error||"Ошибка загрузки");state.job=result;state.jobs=[result,...state.jobs.filter(job=>job.id!==result.id)];renderAll();dialog.close();file.value="";$("file-name").textContent="";await loadJobs(true)}catch(error){$("upload-error").textContent=error.message} };
     xhr.onerror=()=>{$("upload-submit").disabled=false;$("upload-error").textContent="Не удалось подключиться к локальному серверу"}; xhr.send(selected);
   });
 }
 
 async function init() {
   setupViewerEvents(); setupUpload();
+  setInterval(updateProcessingOverlay, 1000);
   $("job-select").addEventListener("change",event=>{state.job=state.jobs.find(j=>j.id===event.target.value);state.image=null;state.bitmap=null;renderAll()});
   ["search","region","quality"].forEach(id=>$(id).addEventListener(id==="search"?"input":"change",renderAll));
   $("refresh").addEventListener("click",()=>loadJobs()); $("landmarks").addEventListener("change",drawImage);

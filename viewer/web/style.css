@@ -2,6 +2,7 @@
 *{box-sizing:border-box}
  :root{--ink:#192d35;--muted:#77878e;--line:#e0e7e8;--teal:#167b73;--soft:#edf5f3;--amber:#ac741c;--bg:#f5f7f7}
 body{margin:0;background:var(--bg);font:14px/1.5 system,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink)}
+body.processing{overflow:hidden}
 button,input,select{font:inherit}
 button,a,input,select{outline-offset:4px}
 button{cursor:pointer}
@@ -147,6 +148,22 @@ dialog::backdrop{background:#0c292966;backdrop-filter:blur(4px)}
 .upload-explainer p{margin:4px 0 0;font-size:12px}
 .upload-explainer code{font-size:11px;background:#fff;padding:1px 4px;border-radius:3px}
 progress{width:100%;accent-color:var(--teal)}
+.processing-overlay{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:20px;background:#0c2929b8;backdrop-filter:blur(7px)}
+.processing-card{width:min(440px,calc(100vw - 32px));padding:32px;border:1px solid #ffffff30;border-radius:16px;background:#fff;box-shadow:0 32px 100px #061c1c70;text-align:center}
+.processing-card h2{font-size:23px;margin:9px 0 4px}
+.processing-card>p{margin:5px 0;color:var(--muted)}
+.processing-card small{display:block;margin-top:15px;color:var(--muted);font-size:11px}
+.processing-spinner{width:58px;height:58px;margin:0 auto 20px;border:5px solid #d9ece6;border-top-color:var(--teal);border-radius:50%;animation:processing-spin .85s linear infinite}
+.processing-spinner span{display:block;width:10px;height:10px;margin:3px;background:#8fd4b9;border-radius:50%}
+.processing-state{display:inline-flex;align-items:center;gap:8px;margin:19px 0 12px;padding:7px 12px;border-radius:20px;background:var(--soft);color:var(--teal);font-size:12px}
+.processing-state i{width:7px;height:7px;border-radius:50%;background:#2c9d82;box-shadow:0 0 0 5px #2c9d8218;animation:processing-pulse 1.4s ease-in-out infinite}
+.processing-track{height:5px;margin:0 0 15px;overflow:hidden;border-radius:5px;background:#dfebe8}
+.processing-track span{display:block;width:42%;height:100%;border-radius:5px;background:linear-gradient(90deg,#87cfba,var(--teal));animation:processing-track 1.35s ease-in-out infinite}
+#processing-detail{min-height:42px;font-size:12px;line-height:1.65}
+@keyframes processing-spin{to{transform:rotate(360deg)}}
+@keyframes processing-pulse{50%{opacity:.4;transform:scale(.75)}}
+@keyframes processing-track{0%{transform:translateX(-110%)}100%{transform:translateX(345%)}}
+@media(prefers-reduced-motion:reduce){.processing-spinner,.processing-state i,.processing-track span{animation-duration:3s}}
 @media(min-width:1600px){.viewport{height:490px}
 .workspace{grid-template-columns:290px minmax(400px,1fr) 300px}
 }

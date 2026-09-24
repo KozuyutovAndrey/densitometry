@@ -111,6 +111,13 @@ class ViewerAdapterTests(unittest.TestCase):
             self.assertIn("1&amp;2", sheet)
             self.assertIn("<v>0.25</v>", sheet)
 
+    def test_ui_has_blocking_processing_status(self):
+        html = (server.STATIC / "index.html").read_text()
+        script = (server.STATIC / "app.js").read_text()
+        self.assertIn('id="processing-overlay"', html)
+        self.assertIn("Идёт обработка исследований", script)
+        self.assertIn("updateProcessingOverlay", script)
+
 
 if __name__ == "__main__":
     unittest.main()
