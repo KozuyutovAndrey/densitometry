@@ -53,6 +53,10 @@ class ViewerAdapterTests(unittest.TestCase):
             self.assertIn("--out-csv", command)
             self.assertIn("--work-dir", command)
 
+    def test_docker_image_does_not_force_cuda(self):
+        dockerfile = (server.ROOT / "Dockerfile").read_text()
+        self.assertNotIn("QC_DEVICE=cuda", dockerfile)
+
     def test_3d_is_enabled_with_existing_checkpoint(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
