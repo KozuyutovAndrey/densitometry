@@ -184,6 +184,12 @@ class Handler(SimpleHTTPRequestHandler):
                 writer.writeheader()
                 writer.writerows(job.get("images", []))
                 return self.send_data(out.getvalue().encode("utf-8-sig"), content_type="text/csv; charset=utf-8")
+            if parts[3:] == ["export.xlsx"]:
+                from viewer.xlsx_export import workbook_bytes
+                return self.send_data(
+                    workbook_bytes(job.get("images", []), FIELDS),
+                    content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                )
             if len(parts) == 6 and parts[3] == "images" and parts[5] == "preview.png":
                 item = next(r for r in job["images"] if r["id"] == parts[4])
                 out = io.BytesIO()

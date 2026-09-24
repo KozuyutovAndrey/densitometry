@@ -40,8 +40,28 @@ def status_for(row: dict[str, str]) -> str:
     return "Failure"
 
 
-def export_submission(debug_csv: Path, out_csv: Path, elapsed_seconds: float) -> None:
+def image_processing_times(paths: list[Path]) -> dict[str, float]:
+    totals: dict[str, float] = {}
+    for path in paths:
+        for row in read_csv(path):
+            try:
+                seconds = float(row.get("processing_seconds", "0"))
+            except ValueError:
+                seconds = 0.0
+            member = row.get("member", "")
+            totals[member] = totals.get(member, 0.0) + max(seconds, 0.0)
+    return totals
+
+
+def export_submission(
+    debug_csv: Path,
+    out_csv: Path,
+    elapsed_seconds: float,
+    timing_csvs: list[Path] | None = None,
+) -> None:
     rows = read_csv(debug_csv)
+    timings = image_processing_times(timing_csvs or [])
+    fallback_seconds = elapsed_seconds / max(len(rows), 1)
     out_rows: list[dict[str, Any]] = []
     for row in rows:
         out_rows.append(
@@ -53,7 +73,7 @@ def export_submission(debug_csv: Path, out_csv: Path, elapsed_seconds: float) ->
                 "quality_class": row.get("quality_class", ""),
                 "violation_type": row.get("violation_type", ""),
                 "processing_status": status_for(row),
-                "time_of_processing": f"{elapsed_seconds:.3f}",
+                "time_of_processing": f"{timings.get(row.get('member', ''), fallback_seconds):.6f}",
             }
         )
     write_csv(
@@ -166,7 +186,7 @@ def main() -> None:
     )
 
     elapsed = time.perf_counter() - started
-    export_submission(debug_quality_csv, args.out_csv, elapsed)
+    export_submission(debug_quality_csv, args.out_csv, elapsed, [heatmap_csv, knn_csv, spine_csv])
     print(f"Wrote final CSV: {args.out_csv}")
     print(f"Wrote debug CSV: {debug_quality_csv}")
     print(f"Elapsed seconds: {elapsed:.3f}")

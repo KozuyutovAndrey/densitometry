@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import time
 import zipfile
 from pathlib import Path
 from typing import Any
@@ -145,10 +146,16 @@ def main() -> None:
     device = torch.device(args.device)
     positioning_bundle = load_classifier(args.positioning_model, device)
     artifact_bundle = load_classifier(args.artifact_model, device)
-    rows = [
-        predict_row(row, args.dicom_input, positioning_bundle, artifact_bundle, device)
-        for row in read_csv(args.input_csv)
-    ]
+    rows = []
+    for row in read_csv(args.input_csv):
+        if device.type == "cuda":
+            torch.cuda.synchronize(device)
+        started = time.perf_counter()
+        result = predict_row(row, args.dicom_input, positioning_bundle, artifact_bundle, device)
+        if device.type == "cuda":
+            torch.cuda.synchronize(device)
+        result["processing_seconds"] = f"{time.perf_counter() - started:.6f}"
+        rows.append(result)
     fieldnames = [
         "input_source",
         "study_key",
@@ -157,6 +164,7 @@ def main() -> None:
         "anatomical_region",
         "is_canonical_for_region",
         "spine_classifier_status",
+        "processing_seconds",
         "spine_positioning_prob_bad",
         "spine_positioning_threshold",
         "spine_positioning_pred_bad",

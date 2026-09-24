@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import time
 import zipfile
 from pathlib import Path
 from typing import Any
@@ -251,8 +252,12 @@ def main() -> None:
     hip_bundle = load_model(args.hip_model, device)
     spine_bundle = load_model(args.spine_model, device) if args.use_spine_model else None
     rows = read_csv(args.input_csv)
-    out_rows = [
-        predict_row(
+    out_rows = []
+    for row in rows:
+        if device.type == "cuda":
+            torch.cuda.synchronize(device)
+        started = time.perf_counter()
+        result = predict_row(
             row=row,
             dicom_input=args.dicom_input,
             hip_bundle=hip_bundle,
@@ -260,8 +265,10 @@ def main() -> None:
             device=device,
             use_spine_model=args.use_spine_model,
         )
-        for row in rows
-    ]
+        if device.type == "cuda":
+            torch.cuda.synchronize(device)
+        result["processing_seconds"] = f"{time.perf_counter() - started:.6f}"
+        out_rows.append(result)
     fieldnames = [
         "input_source",
         "study_key",
@@ -271,6 +278,7 @@ def main() -> None:
         "is_canonical_for_region",
         "landmark_model",
         "landmark_status",
+        "processing_seconds",
         *point_columns(),
     ]
     write_csv(args.out_csv, out_rows, fieldnames)

@@ -1,10 +1,15 @@
 import os
+import csv
+import io
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 from unittest.mock import patch
 
 from viewer import reconstruct, server
+from viewer.xlsx_export import workbook_bytes
+from scripts.run_full_inference import export_submission
 
 
 class ViewerAdapterTests(unittest.TestCase):
@@ -75,6 +80,36 @@ class ViewerAdapterTests(unittest.TestCase):
         self.assertEqual(209, len(points))
         self.assertEqual([0.25, 0.0, 0.75], points[0])
         self.assertEqual(1.0, points[-1][1])
+
+    def test_submission_uses_measured_time_for_each_dicom(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            debug = root / "debug.csv"
+            timing = root / "timing.csv"
+            output = root / "submission.csv"
+            with debug.open("w", newline="") as file:
+                writer = csv.DictWriter(file, fieldnames=["member", "path_to_study", "dicom_study_uid", "image_uid", "anatomical_region", "quality_class", "violation_type", "processing_status"])
+                writer.writeheader()
+                writer.writerows([
+                    {"member": "a.dcm", "image_uid": "a", "quality_class": "0", "processing_status": "quality_predicted"},
+                    {"member": "b.dcm", "image_uid": "b", "quality_class": "1", "processing_status": "quality_predicted"},
+                ])
+            with timing.open("w", newline="") as file:
+                writer = csv.DictWriter(file, fieldnames=["member", "processing_seconds"])
+                writer.writeheader()
+                writer.writerows([{"member": "a.dcm", "processing_seconds": "0.125"}, {"member": "b.dcm", "processing_seconds": "0.875"}])
+            export_submission(debug, output, 10.0, [timing])
+            with output.open() as file:
+                values = list(csv.DictReader(file))
+            self.assertEqual(["0.125000", "0.875000"], [row["time_of_processing"] for row in values])
+
+    def test_xlsx_export_is_a_valid_office_archive(self):
+        content = workbook_bytes([{"image_uid": "1&2", "quality_class": "1", "time_of_processing": "0.25"}], server.FIELDS)
+        with zipfile.ZipFile(io.BytesIO(content)) as archive:
+            self.assertEqual("PK", content[:2].decode())
+            sheet = archive.read("xl/worksheets/sheet1.xml").decode()
+            self.assertIn("1&amp;2", sheet)
+            self.assertIn("<v>0.25</v>", sheet)
 
 
 if __name__ == "__main__":
