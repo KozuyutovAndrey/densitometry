@@ -1,8 +1,7 @@
-"""Optional subprocess boundary around the upstream DXA-to-3D inference."""
+"""Subprocess boundary around the published DXA-to-3D checkpoint."""
 import argparse
 import json
 import os
-import sys
 from pathlib import Path
 
 
@@ -15,23 +14,27 @@ def validate_points(points):
     return points
 
 
+def curves_to_points(curves):
+    """Combine predicted coronal and sagittal centre lines into a 3D curve."""
+    import numpy as np
+    values = np.asarray(curves, dtype=float)
+    if values.shape != (209, 6) or not np.isfinite(values).all():
+        raise ValueError("Expected 209x6 finite curve predictions")
+    vertical = np.linspace(0.0, 1.0, len(values))
+    return np.column_stack((values[:, 1], vertical, values[:, 4])).tolist()
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
-    repo = Path(os.environ["DXA3D_REPO"]).resolve()
     checkpoint = Path(os.environ["DXA3D_CHECKPOINT"]).resolve()
-    if not (repo / "inference.py").is_file() or not checkpoint.is_file():
-        raise FileNotFoundError("DXA-to-3D source/checkpoint missing")
-    sys.path.insert(0, str(repo))
-    from config import InferenceConfig
-    from inference import SpineEstimator
-    config = InferenceConfig(model_checkpoint=str(checkpoint), output_dir=str(Path(args.output).parent))
-    estimator = SpineEstimator(config)
-    result = estimator.predict_single(args.input, visualize=False, save_results=False)
-    points = validate_points(result["spine_3d"].tolist())
-    Path(args.output).write_text(json.dumps({"points": points, "units": "model_coordinates",
+    if not checkpoint.is_file():
+        raise FileNotFoundError("DXA-to-3D checkpoint missing")
+    from viewer.dxa3d_published import predict_curves
+    points = validate_points(curves_to_points(predict_curves(args.input, checkpoint)))
+    Path(args.output).write_text(json.dumps({"points": points, "units": "normalized_model_coordinates",
                                            "model": "DXA-to-3D", "experimental": True}, allow_nan=False))
 
 

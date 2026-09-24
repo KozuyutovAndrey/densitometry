@@ -4,6 +4,7 @@ __pycache__
 *.pyc
 .DS_Store
 artifacts/viewer_jobs
+artifacts/dxa3d
 notebooks
 
 # Source and derived medical data must not enter the runtime image.

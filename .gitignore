@@ -16,3 +16,4 @@ wheels/
 
 # Local web viewer uploads and generated previews
 artifacts/viewer_jobs/
+artifacts/dxa3d/

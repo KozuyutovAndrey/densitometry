@@ -118,15 +118,9 @@ def image_bytes(job, item):
 
 
 def reconstruction_status():
-    repo = Path(os.environ.get("DXA3D_REPO", ""))
     checkpoint = Path(os.environ.get("DXA3D_CHECKPOINT", ""))
-    if not os.environ.get("DXA3D_REPO") or not os.environ.get("DXA3D_CHECKPOINT"):
-        return False, "3D-реконструкция пока не подключена к серверной сборке"
-    if not (repo / "inference.py").is_file() or not checkpoint.is_file():
-        return False, "Не найден исходный код DXA-to-3D или checkpoint"
-    model_path = repo / "model.py"
-    if not model_path.is_file() or "def create_model" not in model_path.read_text(errors="ignore"):
-        return False, "Версия DXA-to-3D несовместима с опубликованным inference API"
+    if not os.environ.get("DXA3D_CHECKPOINT") or not checkpoint.is_file():
+        return False, "3D-модель ещё не загружена на сервер"
     return True, ""
 
 
