@@ -8,7 +8,10 @@ from viewer import reconstruct, server
 
 
 class ViewerAdapterTests(unittest.TestCase):
-    def test_saved_example_matches_submission_rows(self):
+    def test_server_starts_without_demo_jobs(self):
+        self.assertEqual({}, server.JOBS)
+
+    def test_result_parser_matches_submission_rows(self):
         images = server.results(
             server.ROOT / "artifacts/submission_test.csv",
             server.ROOT / "artifacts/full_inference_test",
@@ -21,6 +24,11 @@ class ViewerAdapterTests(unittest.TestCase):
     def test_snapshot_does_not_expose_local_paths(self):
         public = server.snapshot({"id": "job", "status": "queued", "_input": Path("private.zip")})
         self.assertEqual({"id": "job", "status": "queued"}, public)
+
+    def test_archive_label_is_safe_and_human_readable(self):
+        self.assertEqual("batch 01", server.archive_label("batch%2001.zip"))
+        self.assertEqual("secret", server.archive_label("../../secret.zip"))
+        self.assertEqual("Новый пакет исследований", server.archive_label(""))
 
     def test_qc_job_delegates_to_existing_full_inference_script(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -40,32 +48,33 @@ class ViewerAdapterTests(unittest.TestCase):
             self.assertIn("--out-csv", command)
             self.assertIn("--work-dir", command)
 
-    def test_3d_is_enabled_only_with_existing_repo_and_checkpoint(self):
+    def test_3d_is_enabled_with_existing_checkpoint(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            repo = root / "repo"
-            repo.mkdir()
-            (repo / "inference.py").write_text("# upstream entrypoint\n")
-            (repo / "model.py").write_text("def create_model():\n    pass\n")
             checkpoint = root / "model.pt"
             checkpoint.write_bytes(b"checkpoint")
-            with patch.dict(os.environ, {"DXA3D_REPO": str(repo), "DXA3D_CHECKPOINT": str(checkpoint)}, clear=False):
+            with patch.dict(os.environ, {"DXA3D_CHECKPOINT": str(checkpoint)}, clear=False):
                 self.assertTrue(server.reconstruction_enabled())
 
-    def test_pinned_upstream_is_reported_as_incompatible(self):
-        with tempfile.TemporaryDirectory() as directory:
-            checkpoint = Path(directory) / "model.pt"
-            checkpoint.write_bytes(b"checkpoint")
-            repo = server.ROOT / "third_party/DXA-to-3D"
-            with patch.dict(os.environ, {"DXA3D_REPO": str(repo), "DXA3D_CHECKPOINT": str(checkpoint)}, clear=False):
-                enabled, reason = server.reconstruction_status()
-            self.assertFalse(enabled)
-            self.assertIn("несовместима", reason)
+    def test_missing_3d_configuration_has_user_facing_message(self):
+        with patch.dict(os.environ, {}, clear=True):
+            enabled, reason = server.reconstruction_status()
+        self.assertFalse(enabled)
+        self.assertNotIn("DXA3D_", reason)
+        self.assertIn("не загружена", reason)
 
     def test_3d_points_validation_rejects_invalid_values(self):
         self.assertEqual([[0.0, 1.0, 2.0], [3.0, 4.0, 5.0]], reconstruct.validate_points([[0.0, 1.0, 2.0], [3.0, 4.0, 5.0]]))
         with self.assertRaises(ValueError):
             reconstruct.validate_points([[0.0, 1.0, float("nan")], [3.0, 4.0, 5.0]])
+
+    def test_published_curves_are_converted_to_3d_centerline(self):
+        curves = [[0.0] * 6 for _ in range(209)]
+        curves[0][1], curves[0][4] = 0.25, 0.75
+        points = reconstruct.curves_to_points(curves)
+        self.assertEqual(209, len(points))
+        self.assertEqual([0.25, 0.0, 0.75], points[0])
+        self.assertEqual(1.0, points[-1][1])
 
 
 if __name__ == "__main__":

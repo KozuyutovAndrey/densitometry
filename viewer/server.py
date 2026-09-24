@@ -16,7 +16,7 @@ import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 STATIC = Path(__file__).parent / "web"
@@ -79,14 +79,11 @@ def snapshot(job):
         return {k: v for k, v in job.items() if not k.startswith("_")}
 
 
-def load_example():
-    try:
-        images = results(ROOT / "artifacts/submission_test.csv", ROOT / "artifacts/full_inference_test")
-        JOBS["example"] = {"id": "example", "name": "Тестовый набор команды", "status": "completed",
-                           "archived": True, "images": images, "created": time.time(),
-                           "_input": ROOT / "data/Для теста.zip", "reconstructions": {}}
-    except (OSError, ValueError, KeyError):
-        pass
+def archive_label(header):
+    name = Path(unquote(header or "")).name
+    if name.lower().endswith(".zip"):
+        name = name[:-4]
+    return name[:100] or "Новый пакет исследований"
 
 
 def run_job(job):
@@ -121,15 +118,9 @@ def image_bytes(job, item):
 
 
 def reconstruction_status():
-    repo = Path(os.environ.get("DXA3D_REPO", ""))
     checkpoint = Path(os.environ.get("DXA3D_CHECKPOINT", ""))
-    if not os.environ.get("DXA3D_REPO") or not os.environ.get("DXA3D_CHECKPOINT"):
-        return False, "Укажите DXA3D_REPO и DXA3D_CHECKPOINT"
-    if not (repo / "inference.py").is_file() or not checkpoint.is_file():
-        return False, "Не найден исходный код DXA-to-3D или checkpoint"
-    model_path = repo / "model.py"
-    if not model_path.is_file() or "def create_model" not in model_path.read_text(errors="ignore"):
-        return False, "Версия DXA-to-3D несовместима с опубликованным inference API"
+    if not os.environ.get("DXA3D_CHECKPOINT") or not checkpoint.is_file():
+        return False, "3D-модель ещё не загружена на сервер"
     return True, ""
 
 
@@ -228,7 +219,8 @@ class Handler(SimpleHTTPRequestHandler):
                 folder.mkdir(parents=True)
                 source = folder / "input.zip"
                 source.write_bytes(payload)
-                job = {"id": key, "name": "Новая загрузка", "created": time.time(), "status": "queued",
+                job = {"id": key, "name": archive_label(self.headers.get("X-Archive-Name")),
+                       "created": time.time(), "status": "queued",
                        "archived": False, "images": [], "reconstructions": {}, "_input": source, "_folder": folder}
                 with LOCK:
                     JOBS[key] = job
@@ -238,7 +230,7 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.send_data({"error": "Нужен корректный ZIP с файлами .dcm, до 10 000 файлов и 2 ГБ после распаковки"}, 400)
         if len(parts) == 6 and parts[:2] == ["api", "jobs"] and parts[3] == "images" and parts[5] == "reconstruct":
             if not reconstruction_enabled():
-                return self.send_data({"error": "DXA-to-3D ещё не настроен на сервере"}, 503)
+                return self.send_data({"error": reconstruction_status()[1]}, 503)
             job = JOBS.get(parts[2])
             item = next((r for r in (job or {}).get("images", []) if r["id"] == parts[4]), None)
             if not item or item["anatomical_region"] != "spine":
@@ -257,7 +249,6 @@ if __name__ == "__main__":
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args()
-    load_example()
     display_host = "127.0.0.1" if args.host == "0.0.0.0" else args.host
     print(f"Densitometry viewer: http://{display_host}:{args.port}", flush=True)
     ThreadingHTTPServer((args.host, args.port), Handler).serve_forever()
