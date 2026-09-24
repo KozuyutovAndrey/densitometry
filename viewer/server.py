@@ -128,14 +128,25 @@ def reconstruction_enabled():
     return reconstruction_status()[0]
 
 
+def reconstruction_command(input_path, output_path):
+    return [
+        os.environ.get("DXA3D_PYTHON", sys.executable),
+        "-m",
+        "viewer.reconstruct",
+        "--input",
+        str(input_path),
+        "--output",
+        str(output_path),
+    ]
+
+
 def reconstruct(job, item):
     folder = STORE / job["id"] / ("3d-" + item["id"])
     folder.mkdir(parents=True, exist_ok=True)
     try:
         image_bytes(job, item).save(folder / "input.png")
         with (folder / "reconstruction.log").open("w") as log:
-            subprocess.run([os.environ.get("DXA3D_PYTHON", sys.executable), str(Path(__file__).parent / "reconstruct.py"),
-                            "--input", str(folder / "input.png"), "--output", str(folder / "result.json")],
+            subprocess.run(reconstruction_command(folder / "input.png", folder / "result.json"),
                            cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=180)
         value = json.loads((folder / "result.json").read_text())
         with LOCK:
