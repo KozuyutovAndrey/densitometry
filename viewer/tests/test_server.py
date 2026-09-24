@@ -159,6 +159,10 @@ class ViewerAdapterTests(unittest.TestCase):
         self.assertEqual([0.25, 0.0, 0.75], points[0])
         self.assertEqual(1.0, points[-1][1])
 
+    def test_3d_worker_runs_reconstruction_as_importable_module(self):
+        command = server.reconstruction_command(Path("input.png"), Path("result.json"))
+        self.assertEqual(["-m", "viewer.reconstruct"], command[1:3])
+
     def test_submission_uses_measured_time_for_each_dicom(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
