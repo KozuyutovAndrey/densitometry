@@ -38,7 +38,7 @@ async function api(path, options) {
 }
 
 function jobLabel(job) {
-  const marker = job.archived ? "пример" : ({ queued: "в очереди", running: "обработка", failed: "ошибка" }[job.status] || "готово");
+  const marker = ({ queued: "в очереди", running: "обработка", failed: "ошибка" }[job.status] || "готово");
   return `${job.name} · ${marker}`;
 }
 
@@ -67,7 +67,7 @@ function statusText(job) {
   if (job.status === "queued") return "Ожидает запуска";
   if (job.status === "running") return "Выполняется полный анализ…";
   if (job.status === "failed") return job.error || "Обработка завершилась с ошибкой";
-  return job.archived ? "Результат сохранённого тестового прогона" : "Пакетная обработка завершена";
+  return "Пакетная обработка завершена";
 }
 
 function matches(image) {
@@ -214,9 +214,7 @@ function renderFindings() {
     measurements.append(row); count++;
   }
   if (!count) measurements.append(node("div", "metric", "Числовые измерения недоступны"));
-  $("source-note").textContent = state.job.archived
-    ? `Показан сохранённый результат полного прогона. Landmarks: ${image.landmark_model || "нет данных"}.`
-    : `Результат локальной пакетной обработки. Landmarks: ${image.landmark_model || "нет данных"}.`;
+  $("source-note").textContent = `Результат локальной пакетной обработки. Landmarks: ${image.landmark_model || "нет данных"}.`;
 }
 
 function addFinding(container, title, description, bad) {
@@ -282,7 +280,7 @@ function update3dPanel() {
   const current = reconstruction();
   $("reconstruct").disabled = !state.health?.reconstruction || current?.status === "queued";
   if (!enabled) $("three-description").textContent = "3D-функция предназначена для снимков позвоночника.";
-  else if (!state.health?.reconstruction) $("three-description").textContent = state.health?.reconstruction_reason || "Модуль DXA-to-3D не настроен на сервере.";
+  else if (!state.health?.reconstruction) $("three-description").textContent = state.health?.reconstruction_reason || "3D-реконструкция пока недоступна в этой сборке.";
   else if (current?.status === "queued") $("three-description").textContent = "Выполняется реконструкция…";
   else if (current?.status === "failed") $("three-description").textContent = current.error;
   else $("three-description").textContent = "Модель оценивает фронтальную и сагиттальную центральные линии и объединяет их в пространственную ось.";
@@ -350,7 +348,7 @@ function setupUpload() {
   $("upload-form").addEventListener("submit",event=>{
     event.preventDefault(); const selected=file.files[0]; if(!selected)return;
     $("upload-error").textContent=""; $("upload-progress").hidden=false; $("upload-submit").disabled=true;
-    const xhr=new XMLHttpRequest(); xhr.open("POST","/api/jobs"); xhr.setRequestHeader("Content-Type","application/zip");
+    const xhr=new XMLHttpRequest(); xhr.open("POST","/api/jobs"); xhr.setRequestHeader("Content-Type","application/zip");xhr.setRequestHeader("X-Archive-Name",encodeURIComponent(selected.name));
     xhr.upload.onprogress=e=>{if(e.lengthComputable)$("upload-progress").value=e.loaded/e.total*100};
     xhr.onload=async()=>{ $("upload-submit").disabled=false; try{const result=JSON.parse(xhr.responseText);if(xhr.status>=400)throw new Error(result.error||"Ошибка загрузки");dialog.close();file.value="";$("file-name").textContent="";state.job=result;await loadJobs(false);showNotice("Архив принят. Пакетная обработка поставлена в очередь.")}catch(error){$("upload-error").textContent=error.message} };
     xhr.onerror=()=>{$("upload-submit").disabled=false;$("upload-error").textContent="Не удалось подключиться к локальному серверу"}; xhr.send(selected);

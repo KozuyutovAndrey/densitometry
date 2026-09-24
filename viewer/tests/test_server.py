@@ -8,7 +8,10 @@ from viewer import reconstruct, server
 
 
 class ViewerAdapterTests(unittest.TestCase):
-    def test_saved_example_matches_submission_rows(self):
+    def test_server_starts_without_demo_jobs(self):
+        self.assertEqual({}, server.JOBS)
+
+    def test_result_parser_matches_submission_rows(self):
         images = server.results(
             server.ROOT / "artifacts/submission_test.csv",
             server.ROOT / "artifacts/full_inference_test",
@@ -21,6 +24,11 @@ class ViewerAdapterTests(unittest.TestCase):
     def test_snapshot_does_not_expose_local_paths(self):
         public = server.snapshot({"id": "job", "status": "queued", "_input": Path("private.zip")})
         self.assertEqual({"id": "job", "status": "queued"}, public)
+
+    def test_archive_label_is_safe_and_human_readable(self):
+        self.assertEqual("batch 01", server.archive_label("batch%2001.zip"))
+        self.assertEqual("secret", server.archive_label("../../secret.zip"))
+        self.assertEqual("Новый пакет исследований", server.archive_label(""))
 
     def test_qc_job_delegates_to_existing_full_inference_script(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -51,6 +59,13 @@ class ViewerAdapterTests(unittest.TestCase):
             checkpoint.write_bytes(b"checkpoint")
             with patch.dict(os.environ, {"DXA3D_REPO": str(repo), "DXA3D_CHECKPOINT": str(checkpoint)}, clear=False):
                 self.assertTrue(server.reconstruction_enabled())
+
+    def test_missing_3d_configuration_has_user_facing_message(self):
+        with patch.dict(os.environ, {}, clear=True):
+            enabled, reason = server.reconstruction_status()
+        self.assertFalse(enabled)
+        self.assertNotIn("DXA3D_", reason)
+        self.assertIn("не подключена", reason)
 
     def test_pinned_upstream_is_reported_as_incompatible(self):
         with tempfile.TemporaryDirectory() as directory:
