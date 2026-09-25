@@ -28,6 +28,7 @@ JOBS: dict[str, dict] = {}
 LOCK = threading.RLock()
 POOL = ThreadPoolExecutor(max_workers=1)
 MAX_UPLOAD = 512 * 1024 * 1024
+ILIAC_LANDMARKS = {"spine_left_iliac_crest", "spine_right_iliac_crest"}
 
 
 def rows(path):
@@ -45,6 +46,26 @@ def number(value):
         return None
 
 
+def visible_landmark_points(point_row, detail):
+    points = []
+    hide_iliac = (
+        detail.get("anatomical_region") == "spine"
+        and detail.get("spine_positioning_pred_bad") == "1"
+    )
+    for key, val in point_row.items():
+        if not key.endswith("_x"):
+            continue
+        name = key[:-2]
+        if hide_iliac and name in ILIAC_LANDMARKS:
+            continue
+        if point_row.get(name + "_visible") != "1":
+            continue
+        x, y = number(val), number(point_row.get(name + "_y"))
+        if x is not None and y is not None:
+            points.append({"name": name, "x": x, "y": y})
+    return points
+
+
 def results(submission, work):
     debug = rows(work / "quality_predictions_debug.csv")
     skeleton = {r["member"]: r for r in rows(work / "inference_skeleton.csv")}
@@ -59,12 +80,7 @@ def results(submission, work):
             raise ValueError("Порядок изображений в результате и debug не совпадает")
         member = detail["member"]
         point_row = landmarks.get(member, {})
-        points = []
-        for key, val in point_row.items():
-            if key.endswith("_x") and point_row.get(key[:-2] + "_visible") == "1":
-                x, y = number(val), number(point_row.get(key[:-2] + "_y"))
-                if x is not None and y is not None:
-                    points.append({"name": key[:-2], "x": x, "y": y})
+        points = visible_landmark_points(point_row, detail)
         output.append({**row, "id": str(i), "member": member,
                        "filename": detail.get("filename", Path(member).name),
                        "width": number(skeleton.get(member, {}).get("columns")),

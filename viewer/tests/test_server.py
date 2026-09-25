@@ -30,6 +30,80 @@ class ViewerAdapterTests(unittest.TestCase):
         public = server.snapshot({"id": "job", "status": "queued", "_input": Path("private.zip")})
         self.assertEqual({"id": "job", "status": "queued"}, public)
 
+    def test_spine_positioning_bad_hides_iliac_landmarks(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            work = root / "work"
+            work.mkdir()
+            with (root / "submission.csv").open("w", newline="") as file:
+                writer = csv.DictWriter(file, fieldnames=server.FIELDS)
+                writer.writeheader()
+                writer.writerow({
+                    "path_to_study": "study",
+                    "study_uid": "study",
+                    "image_uid": "image",
+                    "anatomical_region": "spine",
+                    "quality_class": "1",
+                    "violation_type": "spine_positioning",
+                    "processing_status": "Success",
+                    "time_of_processing": "0.1",
+                })
+            with (work / "quality_predictions_debug.csv").open("w", newline="") as file:
+                writer = csv.DictWriter(
+                    file,
+                    fieldnames=["member", "filename", "image_uid", "anatomical_region", "spine_positioning_pred_bad"],
+                )
+                writer.writeheader()
+                writer.writerow({
+                    "member": "spine.dcm",
+                    "filename": "spine.dcm",
+                    "image_uid": "image",
+                    "anatomical_region": "spine",
+                    "spine_positioning_pred_bad": "1",
+                })
+            with (work / "inference_skeleton.csv").open("w", newline="") as file:
+                writer = csv.DictWriter(file, fieldnames=["member", "columns", "rows"])
+                writer.writeheader()
+                writer.writerow({"member": "spine.dcm", "columns": "300", "rows": "400"})
+            with (work / "inference_landmark_predictions_hybrid.csv").open("w", newline="") as file:
+                writer = csv.DictWriter(
+                    file,
+                    fieldnames=[
+                        "member",
+                        "landmark_model",
+                        "spine_l1_center_x",
+                        "spine_l1_center_y",
+                        "spine_l1_center_visible",
+                        "spine_left_iliac_crest_x",
+                        "spine_left_iliac_crest_y",
+                        "spine_left_iliac_crest_visible",
+                        "spine_right_iliac_crest_x",
+                        "spine_right_iliac_crest_y",
+                        "spine_right_iliac_crest_visible",
+                    ],
+                )
+                writer.writeheader()
+                writer.writerow({
+                    "member": "spine.dcm",
+                    "landmark_model": "hybrid:test",
+                    "spine_l1_center_x": "100",
+                    "spine_l1_center_y": "120",
+                    "spine_l1_center_visible": "1",
+                    "spine_left_iliac_crest_x": "80",
+                    "spine_left_iliac_crest_y": "360",
+                    "spine_left_iliac_crest_visible": "1",
+                    "spine_right_iliac_crest_x": "220",
+                    "spine_right_iliac_crest_y": "360",
+                    "spine_right_iliac_crest_visible": "1",
+                })
+
+            images = server.results(root / "submission.csv", work)
+
+        names = {point["name"] for point in images[0]["landmarks"]}
+        self.assertIn("spine_l1_center", names)
+        self.assertNotIn("spine_left_iliac_crest", names)
+        self.assertNotIn("spine_right_iliac_crest", names)
+
     def test_archive_label_is_safe_and_human_readable(self):
         self.assertEqual("batch 01", server.archive_label("batch%2001.zip"))
         self.assertEqual("secret", server.archive_label("../../secret.zip"))
