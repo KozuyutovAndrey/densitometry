@@ -7,6 +7,7 @@ import io
 import json
 import math
 import os
+import shutil
 import subprocess
 import sys
 import threading
@@ -27,8 +28,8 @@ FIELDS = ["path_to_study", "study_uid", "image_uid", "anatomical_region", "quali
 JOBS: dict[str, dict] = {}
 LOCK = threading.RLock()
 POOL = ThreadPoolExecutor(max_workers=1)
-MAX_UPLOAD = 512 * 1024 * 1024
 ILIAC_LANDMARKS = {"spine_left_iliac_crest", "spine_right_iliac_crest"}
+UPLOAD_CHUNK = 1024 * 1024
 
 
 def rows(path):
@@ -112,6 +113,17 @@ def archive_contains_dicom(archive):
         if is_dicom_member(info.filename, raw):
             return True
     return False
+
+
+def save_request_body(stream, target, length):
+    remaining = length
+    with target.open("wb") as output:
+        while remaining:
+            chunk = stream.read(min(UPLOAD_CHUNK, remaining))
+            if not chunk:
+                raise ValueError("Upload ended before Content-Length")
+            output.write(chunk)
+            remaining -= len(chunk)
 
 
 def run_job(job):
@@ -244,26 +256,24 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_data({"error": "Недопустимый источник запроса"}, 403)
         parts = urlparse(self.path).path.strip("/").split("/")
         if parts == ["api", "jobs"]:
+            folder = None
             try:
                 length = int(self.headers.get("Content-Length", "0"))
-                if not 0 < length <= MAX_UPLOAD:
-                    return self.send_data({"error": "Допустим ZIP размером до 512 МБ"}, 413)
+                if length <= 0:
+                    return self.send_data({"error": "Архив пуст или не передан"}, 400)
                 with LOCK:
                     if sum(j["status"] in {"queued", "running"} for j in JOBS.values()) >= 4:
                         return self.send_data({"error": "Очередь заполнена. Дождитесь завершения анализа."}, 429)
-                payload = self.rfile.read(length)
-                if len(payload) != length:
-                    raise ValueError()
-                with zipfile.ZipFile(io.BytesIO(payload)) as z:
-                    if len(z.infolist()) > 10000 or sum(i.file_size for i in z.infolist()) > 2 * 1024**3:
-                        raise ValueError()
-                    if not archive_contains_dicom(z):
-                        raise ValueError()
                 key = uuid.uuid4().hex
                 folder = STORE / key
                 folder.mkdir(parents=True)
                 source = folder / "input.zip"
-                source.write_bytes(payload)
+                save_request_body(self.rfile, source, length)
+                with zipfile.ZipFile(source) as z:
+                    if len(z.infolist()) > 10000 or sum(i.file_size for i in z.infolist()) > 2 * 1024**3:
+                        raise ValueError()
+                    if not archive_contains_dicom(z):
+                        raise ValueError()
                 job = {"id": key, "name": archive_label(self.headers.get("X-Archive-Name")),
                        "created": time.time(), "status": "queued",
                        "archived": False, "images": [], "reconstructions": {}, "_input": source, "_folder": folder}
@@ -272,6 +282,8 @@ class Handler(SimpleHTTPRequestHandler):
                 POOL.submit(run_job, job)
                 return self.send_data(snapshot(job), 202)
             except (ValueError, zipfile.BadZipFile):
+                if folder is not None:
+                    shutil.rmtree(folder, ignore_errors=True)
                 return self.send_data({"error": "Нужен корректный ZIP с DICOM-файлами, до 10 000 файлов и 2 ГБ после распаковки"}, 400)
         if len(parts) == 6 and parts[:2] == ["api", "jobs"] and parts[3] == "images" and parts[5] == "reconstruct":
             if not reconstruction_enabled():

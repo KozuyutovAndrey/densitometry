@@ -44,8 +44,8 @@ uv run python viewer/server.py --host 0.0.0.0 --port 8765
 доступа без reverse proxy можно задать `VIEWER_BIND=0.0.0.0`.
 
 Для серверного стенда интерфейс следует публиковать через Nginx. Готовая
-конфигурация находится в `deploy/nginx/densitometry.conf` и включает лимит
-загрузки 512 МБ и таймауты для обработки:
+конфигурация находится в `deploy/nginx/densitometry.conf`; размер загружаемого
+ZIP в ней не ограничен, а таймауты увеличены для обработки больших пакетов:
 
 ```bash
 sudo apt-get update
@@ -74,8 +74,9 @@ sudo systemctl reload nginx
 | `GET` | `/api/jobs/{job_id}/images/{image_id}/preview.png` | Получить PNG-превью DICOM |
 | `POST` | `/api/jobs/{job_id}/images/{image_id}/reconstruct` | Запустить 3D для spine-снимка |
 
-`POST /api/jobs` принимает `application/zip` без multipart-обёртки. Максимальный
-размер запроса — 512 МБ, после распаковки — 2 ГБ и не более 10 000 файлов.
+`POST /api/jobs` принимает `application/zip` без multipart-обёртки и записывает
+его на диск потоково. Размер ZIP не ограничен; после распаковки допускается до
+2 ГБ и не более 10 000 файлов.
 
 Роут пакетного анализа запускает существующую команду:
 
