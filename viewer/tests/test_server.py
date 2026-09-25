@@ -56,6 +56,13 @@ class ViewerAdapterTests(unittest.TestCase):
         with zipfile.ZipFile(io.BytesIO(archive_bytes.getvalue())) as archive:
             self.assertTrue(server.archive_contains_dicom(archive))
 
+    def test_upload_body_is_streamed_to_disk_without_size_cap(self):
+        payload = b"x" * (server.UPLOAD_CHUNK * 2 + 17)
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "large.zip"
+            server.save_request_body(io.BytesIO(payload), target, len(payload))
+            self.assertEqual(payload, target.read_bytes())
+
     def test_qc_job_delegates_to_existing_full_inference_script(self):
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory)
