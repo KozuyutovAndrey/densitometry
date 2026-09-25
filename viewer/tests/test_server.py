@@ -228,6 +228,15 @@ class ViewerAdapterTests(unittest.TestCase):
         self.assertIn("Идёт обработка исследований", script)
         self.assertIn("updateProcessingOverlay", script)
 
+    def test_ui_has_explainability_overlay_toggle(self):
+        html = (server.STATIC / "index.html").read_text()
+        script = (server.STATIC / "app.js").read_text()
+        self.assertIn('id="explain"', html)
+        self.assertIn("Объяснение", html)
+        self.assertIn("drawExplanationOverlay", script)
+        self.assertIn("hip_lateral_margin_mm", script)
+        self.assertIn("spine_axis_angle_deg", script)
+
 
 if __name__ == "__main__":
     unittest.main()

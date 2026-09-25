@@ -261,6 +261,161 @@ function findingExplanation(label) {
   return "Нарушение определено существующим пайплайном контроля качества.";
 }
 
+
+const spineCenterNames = ["spine_th12_center", "spine_l1_center", "spine_l2_center", "spine_l3_center", "spine_l4_center", "spine_l5_center"];
+
+function hasViolation(image, code) {
+  return (image?.violation_type || "").split(/[;,|]+/).map((value) => value.trim()).includes(code);
+}
+
+function pointByName(image, name) {
+  return (image?.landmarks || []).find((point) => point.name === name);
+}
+
+function metricValue(image, key) {
+  const value = image?.metrics?.[key];
+  return value === null || value === undefined ? null : Number(value);
+}
+
+function imageToCanvas(point, transform) {
+  return { x: transform.x + point.x * transform.scale, y: transform.y + point.y * transform.scale };
+}
+
+function drawLabel(ctx, x, y, text, color) {
+  const ratio = window.devicePixelRatio || 1;
+  ctx.save();
+  ctx.font = `${11 * ratio}px system, sans-serif`;
+  const paddingX = 7 * ratio, paddingY = 4 * ratio;
+  const width = ctx.measureText(text).width + paddingX * 2;
+  const height = 20 * ratio;
+  const left = Math.min(Math.max(8 * ratio, x), ctx.canvas.width - width - 8 * ratio);
+  const top = Math.min(Math.max(8 * ratio, y - height - 7 * ratio), ctx.canvas.height - height - 8 * ratio);
+  ctx.fillStyle = "rgba(10, 27, 31, .86)";
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1 * ratio;
+  ctx.beginPath();
+  ctx.roundRect(left, top, width, height, 5 * ratio);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = "#f4fffb";
+  ctx.fillText(text, left + paddingX, top + 14 * ratio);
+  ctx.restore();
+}
+
+function drawLine(ctx, a, b, color, dashed = false, width = 2) {
+  const ratio = window.devicePixelRatio || 1;
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width * ratio;
+  ctx.lineCap = "round";
+  if (dashed) ctx.setLineDash([6 * ratio, 5 * ratio]);
+  ctx.beginPath();
+  ctx.moveTo(a.x, a.y);
+  ctx.lineTo(b.x, b.y);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawMeasurement(ctx, a, b, label, color) {
+  const ratio = window.devicePixelRatio || 1;
+  drawLine(ctx, a, b, color, false, 2.5);
+  ctx.save();
+  ctx.fillStyle = color;
+  for (const [from, to] of [[a, b], [b, a]]) {
+    const angle = Math.atan2(to.y - from.y, to.x - from.x);
+    ctx.beginPath();
+    ctx.moveTo(to.x, to.y);
+    ctx.lineTo(to.x - Math.cos(angle - .55) * 8 * ratio, to.y - Math.sin(angle - .55) * 8 * ratio);
+    ctx.lineTo(to.x - Math.cos(angle + .55) * 8 * ratio, to.y - Math.sin(angle + .55) * 8 * ratio);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+  drawLabel(ctx, (a.x + b.x) / 2 + 4 * ratio, (a.y + b.y) / 2, label, color);
+}
+
+function drawSpineExplanation(ctx, image, transform) {
+  const good = "#62d0b0", bad = "#f0a73a", ref = "rgba(230, 245, 242, .58)";
+  if (hasViolation(image, "spine_positioning")) {
+    const y1 = transform.y + image.height * .72 * transform.scale;
+    const y2 = transform.y + image.height * transform.scale;
+    ctx.save();
+    ctx.fillStyle = "rgba(240, 167, 58, .18)";
+    ctx.fillRect(transform.x, y1, image.width * transform.scale, y2 - y1);
+    ctx.restore();
+    drawLabel(ctx, transform.x + 12 * (window.devicePixelRatio || 1), y1 + 25 * (window.devicePixelRatio || 1), "Подвздошные кости не обнаружены", bad);
+  }
+
+  const centers = spineCenterNames.map((name) => pointByName(image, name)).filter(Boolean).sort((a, b) => a.y - b.y);
+  if (centers.length >= 2) {
+    const top = imageToCanvas(centers[0], transform);
+    const bottom = imageToCanvas(centers.at(-1), transform);
+    const color = hasViolation(image, "spine_axis") ? bad : good;
+    drawLine(ctx, { x: top.x, y: top.y }, { x: top.x, y: bottom.y }, ref, true, 1.5);
+    drawLine(ctx, top, bottom, color, false, 3);
+    const angle = metricValue(image, "spine_axis_angle_deg");
+    if (angle !== null) drawLabel(ctx, bottom.x + 8 * (window.devicePixelRatio || 1), bottom.y, `Ось ${angle.toFixed(1)}°`, color);
+  }
+
+  if (hasViolation(image, "spine_artifact")) {
+    drawLabel(ctx, transform.x + image.width * transform.scale - 210 * (window.devicePixelRatio || 1), transform.y + 32 * (window.devicePixelRatio || 1), "Вероятный артефакт", bad);
+  }
+}
+
+function drawHipExplanation(ctx, image, transform) {
+  const good = "#62d0b0", bad = "#f0a73a";
+  const topEdge = pointByName(image, "hip_greater_trochanter_top_edge");
+  const lateralEdge = pointByName(image, "hip_greater_trochanter_lateral_edge");
+  const ischium = pointByName(image, "hip_ischium_edge");
+  const lesserUpper = pointByName(image, "hip_lesser_trochanter_upper");
+  const lesserTip = pointByName(image, "hip_lesser_trochanter_tip");
+  const lesserLower = pointByName(image, "hip_lesser_trochanter_lower");
+  const ratio = window.devicePixelRatio || 1;
+
+  if (topEdge) {
+    const p = imageToCanvas(topEdge, transform);
+    const value = metricValue(image, "hip_top_margin_mm");
+    const color = value !== null && value < 30 ? bad : good;
+    drawMeasurement(ctx, { x: p.x, y: transform.y }, p, value === null ? "Верхний отступ" : `Верх ${value.toFixed(1)} мм`, color);
+  }
+  if (ischium) {
+    const p = imageToCanvas(ischium, transform);
+    const bottom = transform.y + image.height * transform.scale;
+    const value = metricValue(image, "hip_bottom_margin_mm");
+    const color = value !== null && value < 30 ? bad : good;
+    drawMeasurement(ctx, p, { x: p.x, y: bottom }, value === null ? "Нижний отступ" : `Низ ${value.toFixed(1)} мм`, color);
+  }
+  if (lateralEdge) {
+    const p = imageToCanvas(lateralEdge, transform);
+    const isLeftHip = image.anatomical_region === "left_hip";
+    const borderX = transform.x + (isLeftHip ? image.width * transform.scale : 0);
+    const value = metricValue(image, "hip_lateral_margin_mm");
+    const color = value !== null && value < 20 ? bad : good;
+    drawMeasurement(ctx, { x: borderX, y: p.y }, p, value === null ? "Боковой отступ" : `Бок ${value.toFixed(1)} мм`, color);
+  }
+
+  if (lesserUpper && lesserTip && lesserLower) {
+    const upper = imageToCanvas(lesserUpper, transform);
+    const tip = imageToCanvas(lesserTip, transform);
+    const lower = imageToCanvas(lesserLower, transform);
+    const color = hasViolation(image, "hip_positioning_rotation") ? bad : good;
+    drawLine(ctx, upper, lower, color, false, 2);
+    const dx = lower.x - upper.x, dy = lower.y - upper.y;
+    const len2 = Math.max(dx * dx + dy * dy, 1);
+    const t = ((tip.x - upper.x) * dx + (tip.y - upper.y) * dy) / len2;
+    const foot = { x: upper.x + t * dx, y: upper.y + t * dy };
+    drawLine(ctx, foot, tip, color, true, 2);
+    const value = metricValue(image, "hip_lesser_prominence_mm");
+    drawLabel(ctx, tip.x + 8 * ratio, tip.y, value === null ? "Малый вертел" : `Малый вертел ${value.toFixed(1)} мм`, color);
+  }
+}
+
+function drawExplanationOverlay(ctx, image, transform) {
+  if (!image || image.processing_status !== "Success") return;
+  if (image.anatomical_region === "spine") drawSpineExplanation(ctx, image, transform);
+  if (["left_hip", "right_hip"].includes(image.anatomical_region)) drawHipExplanation(ctx, image, transform);
+}
+
 async function loadPreview() {
   if (!state.image || !state.job) return;
   const source = new Image();
@@ -292,6 +447,8 @@ function drawImage() {
   ctx.imageSmoothingEnabled = true;
   ctx.drawImage(state.bitmap, x, y, state.bitmap.width * scale, state.bitmap.height * scale);
   ctx.filter = "none";
+  const transform = { x, y, scale };
+  if ($("explain").checked) drawExplanationOverlay(ctx, state.image, transform);
   if ($("landmarks").checked) {
     for (const point of state.image.landmarks || []) {
       const px = x + point.x * scale, py = y + point.y * scale;
@@ -416,7 +573,7 @@ async function init() {
   setInterval(updateProcessingOverlay, 1000);
   $("job-select").addEventListener("change",event=>{state.job=state.jobs.find(j=>j.id===event.target.value);state.image=null;state.bitmap=null;renderAll()});
   ["search","region","quality"].forEach(id=>$(id).addEventListener(id==="search"?"input":"change",renderAll));
-  $("refresh").addEventListener("click",()=>loadJobs()); $("landmarks").addEventListener("change",drawImage);
+  $("refresh").addEventListener("click",()=>loadJobs()); $("landmarks").addEventListener("change",drawImage); $("explain").addEventListener("change",drawImage);
   ["brightness","contrast"].forEach(id=>$(id).addEventListener("input",drawImage));
   $("zoom-in").addEventListener("click",()=>{state.zoom=Math.min(4,state.zoom*1.15);drawImage()}); $("zoom-out").addEventListener("click",()=>{state.zoom=Math.max(.5,state.zoom/1.15);drawImage()});
   $("reset").addEventListener("click",()=>{state.zoom=1;state.panX=0;state.panY=0;$("brightness").value=100;$("contrast").value=100;drawImage()});
