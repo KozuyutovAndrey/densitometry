@@ -7,6 +7,7 @@ cd "$repo_root"
 image_name="${IMAGE_NAME:-densitometry-qc:latest}"
 container_name="${CONTAINER_NAME:-densitometry-qc}"
 viewer_port="${VIEWER_PORT:-8765}"
+viewer_bind="${VIEWER_BIND:-127.0.0.1}"
 jobs_dir="${VIEWER_JOBS_DIR:-$repo_root/artifacts/viewer_jobs}"
 checkpoint_dir="${DXA3D_MODEL_DIR:-$repo_root/artifacts/dxa3d}"
 checkpoint="$checkpoint_dir/best_model.pt"
@@ -27,7 +28,7 @@ docker run -d \
   --name "$container_name" \
   --restart unless-stopped \
   --gpus all \
-  -p "$viewer_port:8765" \
+  -p "$viewer_bind:$viewer_port:8765" \
   -v "$jobs_dir:/app/artifacts/viewer_jobs" \
   -v "$checkpoint:/models/dxa3d.pt:ro" \
   -e DXA3D_CHECKPOINT=/models/dxa3d.pt \

@@ -73,8 +73,8 @@ def clean_member_name(path: Path, root: Path) -> str:
         return path.name
 
 
-def is_dicom_path(path: Path) -> bool:
-    return path.is_file() and path.suffix.lower() == ".dcm"
+def is_dicom_path(path: Path, raw: bytes | None = None) -> bool:
+    return path.is_file() and is_dicom_member(path.name, raw)
 
 
 def load_laterality_model(path: Path | None) -> LateralityModel | None:
@@ -212,11 +212,14 @@ def iter_input_records(input_path: Path, laterality_model: LateralityModel | Non
         records: list[dict[str, Any]] = []
         with zipfile.ZipFile(input_path) as zf:
             for info in sorted(zf.infolist(), key=lambda item: item.filename):
-                if not is_dicom_member(info.filename):
+                if info.is_dir():
+                    continue
+                raw = zf.read(info)
+                if not is_dicom_member(info.filename, raw):
                     continue
                 records.append(
                     record_from_raw(
-                        zf.read(info),
+                        raw,
                         info.filename,
                         input_path.name,
                         input_path.stem,
@@ -228,12 +231,15 @@ def iter_input_records(input_path: Path, laterality_model: LateralityModel | Non
     if input_path.is_dir():
         records = []
         for path in sorted(input_path.rglob("*")):
-            if not is_dicom_path(path):
+            if not path.is_file():
+                continue
+            raw = path.read_bytes()
+            if not is_dicom_path(path, raw):
                 continue
             member = clean_member_name(path, input_path)
             records.append(
                 record_from_raw(
-                    path.read_bytes(),
+                    raw,
                     member,
                     input_path.as_posix(),
                     input_path.name,

@@ -4,15 +4,27 @@ import io
 import tempfile
 import unittest
 import zipfile
+import struct
 from pathlib import Path
 from unittest.mock import patch
 
 from viewer import reconstruct, server
 from viewer.xlsx_export import workbook_bytes
 from scripts.run_full_inference import export_submission
+from scripts.prepare_artifacts import is_dicom_member
 
 
 class ViewerAdapterTests(unittest.TestCase):
+    @staticmethod
+    def extensionless_dicom_bytes():
+        raw = bytearray(132)
+        raw[128:132] = b"DICM"
+        raw.extend(struct.pack("<HH2sH", 0x0028, 0x0010, b"US", 2))
+        raw.extend(struct.pack("<H", 300))
+        raw.extend(struct.pack("<HH2sH", 0x0028, 0x0011, b"US", 2))
+        raw.extend(struct.pack("<H", 280))
+        return bytes(raw)
+
     def test_server_starts_without_demo_jobs(self):
         self.assertEqual({}, server.JOBS)
 
@@ -34,6 +46,15 @@ class ViewerAdapterTests(unittest.TestCase):
         self.assertEqual("batch 01", server.archive_label("batch%2001.zip"))
         self.assertEqual("secret", server.archive_label("../../secret.zip"))
         self.assertEqual("Новый пакет исследований", server.archive_label(""))
+
+    def test_extensionless_dicom_is_accepted_by_upload_and_pipeline(self):
+        raw = self.extensionless_dicom_bytes()
+        self.assertTrue(is_dicom_member("study/IM000001", raw))
+        archive_bytes = io.BytesIO()
+        with zipfile.ZipFile(archive_bytes, "w") as archive:
+            archive.writestr("study/IM000001", raw)
+        with zipfile.ZipFile(io.BytesIO(archive_bytes.getvalue())) as archive:
+            self.assertTrue(server.archive_contains_dicom(archive))
 
     def test_qc_job_delegates_to_existing_full_inference_script(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -86,6 +86,18 @@ def archive_label(header):
     return name[:100] or "Новый пакет исследований"
 
 
+def archive_contains_dicom(archive):
+    from scripts.prepare_artifacts import is_dicom_member
+
+    for info in archive.infolist():
+        if info.is_dir() or info.file_size > 128 * 1024 * 1024:
+            continue
+        raw = archive.read(info)
+        if is_dicom_member(info.filename, raw):
+            return True
+    return False
+
+
 def run_job(job):
     with LOCK:
         job["status"] = "running"
@@ -227,9 +239,9 @@ class Handler(SimpleHTTPRequestHandler):
                 if len(payload) != length:
                     raise ValueError()
                 with zipfile.ZipFile(io.BytesIO(payload)) as z:
-                    if not any(n.lower().endswith(".dcm") for n in z.namelist()):
-                        raise ValueError()
                     if len(z.infolist()) > 10000 or sum(i.file_size for i in z.infolist()) > 2 * 1024**3:
+                        raise ValueError()
+                    if not archive_contains_dicom(z):
                         raise ValueError()
                 key = uuid.uuid4().hex
                 folder = STORE / key
@@ -244,7 +256,7 @@ class Handler(SimpleHTTPRequestHandler):
                 POOL.submit(run_job, job)
                 return self.send_data(snapshot(job), 202)
             except (ValueError, zipfile.BadZipFile):
-                return self.send_data({"error": "Нужен корректный ZIP с файлами .dcm, до 10 000 файлов и 2 ГБ после распаковки"}, 400)
+                return self.send_data({"error": "Нужен корректный ZIP с DICOM-файлами, до 10 000 файлов и 2 ГБ после распаковки"}, 400)
         if len(parts) == 6 and parts[:2] == ["api", "jobs"] and parts[3] == "images" and parts[5] == "reconstruct":
             if not reconstruction_enabled():
                 return self.send_data({"error": reconstruction_status()[1]}, 503)
