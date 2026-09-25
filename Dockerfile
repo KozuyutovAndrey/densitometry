@@ -8,7 +8,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     UV_LINK_MODE=copy
 
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-install-project
+RUN uv sync --frozen --no-install-project \
+    && .venv/bin/python -c "import torch; assert torch.version.cuda == '12.8', torch.version.cuda"
 
 COPY . .
 RUN uv sync --frozen
