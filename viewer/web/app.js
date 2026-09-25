@@ -4,7 +4,7 @@ const state = {
   jobs: [], job: null, image: null, filtered: [], health: null,
   bitmap: null, zoom: 1, panX: 0, panY: 0, dragging: false, lastX: 0, lastY: 0,
   pollTimer: null,
-  view3d: { yaw: -0.6, pitch: 0.15, scale: 1, dragging: false, x: 0, y: 0 },
+  view3d: { yaw: -0.6, pitch: 0.15, scale: 1.3, dragging: false, x: 0, y: 0 },
 };
 
 const regionNames = { spine: "Позвоночник", left_hip: "Левое бедро", right_hip: "Правое бедро", hip_unknown_side: "Бедро" };
@@ -324,19 +324,45 @@ function draw3d() {
   const ctx = canvas.getContext("2d"); ctx.clearRect(0, 0, width, height);
   const points = reconstruction()?.points;
   if (!points?.length) return;
-  const xs = points.map((p) => p[0]), ys = points.map((p) => p[1]), zs = points.map((p) => p[2]);
+  const smoothPoints=points.map((_,index)=>{
+    const from=Math.max(0,index-7),to=Math.min(points.length-1,index+7);
+    let x=0,y=0,z=0,weightSum=0;
+    for(let i=from;i<=to;i++){
+      const distance=Math.abs(i-index),weight=8-distance;
+      x+=points[i][0]*weight;y+=points[i][1]*weight;z+=points[i][2]*weight;weightSum+=weight;
+    }
+    return [x/weightSum,y/weightSum,z/weightSum];
+  });
+  const xs = smoothPoints.map((p) => p[0]), ys = smoothPoints.map((p) => p[1]), zs = smoothPoints.map((p) => p[2]);
   const center = [(Math.min(...xs) + Math.max(...xs))/2, (Math.min(...ys) + Math.max(...ys))/2, (Math.min(...zs) + Math.max(...zs))/2];
   const span = Math.max(Math.max(...xs)-Math.min(...xs), Math.max(...ys)-Math.min(...ys), Math.max(...zs)-Math.min(...zs), 1);
   const c1 = Math.cos(state.view3d.yaw), s1 = Math.sin(state.view3d.yaw), c2 = Math.cos(state.view3d.pitch), s2 = Math.sin(state.view3d.pitch);
-  const projected = points.map((p) => {
+  const projected = smoothPoints.map((p) => {
     const x0=(p[0]-center[0])/span, y0=(p[1]-center[1])/span, z0=(p[2]-center[2])/span;
     const x1=x0*c1-z0*s1, z1=x0*s1+z0*c1, y1=y0*c2-z1*s2, depth=y0*s2+z1*c2;
     const perspective=1/(1.8+depth*.35), size=Math.min(width,height)*1.35*state.view3d.scale;
     return [width/2+x1*size*perspective,height/2-y1*size*perspective,depth];
   });
-  const gradient=ctx.createLinearGradient(0,0,width,height); gradient.addColorStop(0,"#8dd6c0"); gradient.addColorStop(1,"#287e75");
-  ctx.lineWidth=4*(window.devicePixelRatio||1); ctx.strokeStyle=gradient; ctx.beginPath(); projected.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.stroke();
-  projected.forEach((p) => { ctx.beginPath();ctx.arc(p[0],p[1],4*(window.devicePixelRatio||1),0,Math.PI*2);ctx.fillStyle="#a7e0ce";ctx.fill();ctx.strokeStyle="#153f3d";ctx.lineWidth=1.5;ctx.stroke(); });
+  const pixelRatio=window.devicePixelRatio||1;
+  const tracePath=()=>{
+    ctx.beginPath();
+    ctx.moveTo(projected[0][0],projected[0][1]);
+    for(let i=1;i<projected.length-1;i++){
+      const midpoint=[(projected[i][0]+projected[i+1][0])/2,(projected[i][1]+projected[i+1][1])/2];
+      ctx.quadraticCurveTo(projected[i][0],projected[i][1],midpoint[0],midpoint[1]);
+    }
+    ctx.lineTo(projected.at(-1)[0],projected.at(-1)[1]);
+  };
+  ctx.save();
+  ctx.lineCap="round";ctx.lineJoin="round";
+  tracePath();ctx.strokeStyle="#07191c";ctx.lineWidth=16*pixelRatio;ctx.shadowColor="#64d5b9aa";ctx.shadowBlur=14*pixelRatio;ctx.stroke();
+  const gradient=ctx.createLinearGradient(0,height,width,0);gradient.addColorStop(0,"#236c68");gradient.addColorStop(.48,"#66c5ae");gradient.addColorStop(1,"#b4efdc");
+  tracePath();ctx.shadowBlur=0;ctx.strokeStyle=gradient;ctx.lineWidth=10*pixelRatio;ctx.stroke();
+  tracePath();ctx.strokeStyle="#d8fff2aa";ctx.lineWidth=2*pixelRatio;ctx.stroke();
+  for(const point of [projected[0],projected.at(-1)]){
+    ctx.beginPath();ctx.arc(point[0],point[1],6*pixelRatio,0,Math.PI*2);ctx.fillStyle="#b9efdc";ctx.fill();ctx.strokeStyle="#173d3a";ctx.lineWidth=2*pixelRatio;ctx.stroke();
+  }
+  ctx.restore();
 }
 
 async function request3d() {
@@ -394,7 +420,7 @@ async function init() {
   ["brightness","contrast"].forEach(id=>$(id).addEventListener("input",drawImage));
   $("zoom-in").addEventListener("click",()=>{state.zoom=Math.min(4,state.zoom*1.15);drawImage()}); $("zoom-out").addEventListener("click",()=>{state.zoom=Math.max(.5,state.zoom/1.15);drawImage()});
   $("reset").addEventListener("click",()=>{state.zoom=1;state.panX=0;state.panY=0;$("brightness").value=100;$("contrast").value=100;drawImage()});
-  $("reset-3d").addEventListener("click",()=>{state.view3d={yaw:-.6,pitch:.15,scale:1,dragging:false,x:0,y:0};draw3d()}); $("reconstruct").addEventListener("click",request3d);
+  $("reset-3d").addEventListener("click",()=>{state.view3d={yaw:-.6,pitch:.15,scale:1.3,dragging:false,x:0,y:0};draw3d()}); $("reconstruct").addEventListener("click",request3d);
   $("tab-2d").addEventListener("click",()=>switchTab(false)); $("tab-3d").addEventListener("click",()=>switchTab(true));
   window.addEventListener("resize",()=>{drawImage();draw3d()});
   try { state.health=await api("/api/health"); $("connection").textContent="Локальный сервер подключён";$("connection-dot").classList.add("online");await loadJobs(false); }
