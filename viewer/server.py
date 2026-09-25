@@ -254,7 +254,7 @@ class Handler(SimpleHTTPRequestHandler):
                 source = folder / "input.zip"
                 save_request_body(self.rfile, source, length)
                 with zipfile.ZipFile(source) as z:
-                    if len(z.infolist()) > 10000:
+                    if len(z.infolist()) > 10000 or sum(i.file_size for i in z.infolist()) > 2 * 1024**3:
                         raise ValueError()
                     if not archive_contains_dicom(z):
                         raise ValueError()
@@ -268,7 +268,7 @@ class Handler(SimpleHTTPRequestHandler):
             except (ValueError, zipfile.BadZipFile):
                 if folder is not None:
                     shutil.rmtree(folder, ignore_errors=True)
-                return self.send_data({"error": "Нужен корректный ZIP с DICOM-файлами, не более 10 000 файлов"}, 400)
+                return self.send_data({"error": "Нужен корректный ZIP с DICOM-файлами, до 10 000 файлов и 2 ГБ после распаковки"}, 400)
         if len(parts) == 6 and parts[:2] == ["api", "jobs"] and parts[3] == "images" and parts[5] == "reconstruct":
             if not reconstruction_enabled():
                 return self.send_data({"error": reconstruction_status()[1]}, 503)
