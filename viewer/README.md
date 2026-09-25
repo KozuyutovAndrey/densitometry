@@ -40,6 +40,26 @@ uv run python viewer/server.py --host 0.0.0.0 --port 8765
 его SHA-256, пересобирает образ и заменяет контейнер. Результаты, журналы и веса
 сохраняются между перезапусками. Порт можно изменить через `VIEWER_PORT`, каталог
 заданий — через `VIEWER_JOBS_DIR`, каталог весов — через `DXA3D_MODEL_DIR`.
+По умолчанию контейнер доступен только на `127.0.0.1`; для прямого внешнего
+доступа без reverse proxy можно задать `VIEWER_BIND=0.0.0.0`.
+
+Для серверного стенда интерфейс следует публиковать через Nginx. Готовая
+конфигурация находится в `deploy/nginx/densitometry.conf`; размер загружаемого
+ZIP в ней не ограничен, а таймауты увеличены для обработки больших пакетов:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y nginx
+sudo install -m 644 deploy/nginx/densitometry.conf /etc/nginx/sites-available/densitometry
+sudo ln -sfn /etc/nginx/sites-available/densitometry /etc/nginx/sites-enabled/densitometry
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl enable --now nginx
+sudo systemctl reload nginx
+```
+
+После этого приложение доступно на порту 80. Для публичного домена поверх этой
+конфигурации нужно выпустить TLS-сертификат, например через Certbot.
 
 ## HTTP API
 
@@ -54,8 +74,9 @@ uv run python viewer/server.py --host 0.0.0.0 --port 8765
 | `GET` | `/api/jobs/{job_id}/images/{image_id}/preview.png` | Получить PNG-превью DICOM |
 | `POST` | `/api/jobs/{job_id}/images/{image_id}/reconstruct` | Запустить 3D для spine-снимка |
 
-`POST /api/jobs` принимает `application/zip` без multipart-обёртки. Максимальный
-размер запроса — 512 МБ, после распаковки — 2 ГБ и не более 10 000 файлов.
+`POST /api/jobs` принимает `application/zip` без multipart-обёртки и записывает
+его на диск потоково. Размер ZIP не ограничен; после распаковки допускается до
+2 ГБ и не более 10 000 файлов.
 
 Роут пакетного анализа запускает существующую команду:
 

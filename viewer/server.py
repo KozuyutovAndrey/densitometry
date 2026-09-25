@@ -7,6 +7,7 @@ import io
 import json
 import math
 import os
+import shutil
 import subprocess
 import sys
 import threading
@@ -27,8 +28,8 @@ FIELDS = ["path_to_study", "study_uid", "image_uid", "anatomical_region", "quali
 JOBS: dict[str, dict] = {}
 LOCK = threading.RLock()
 POOL = ThreadPoolExecutor(max_workers=1)
-MAX_UPLOAD = 512 * 1024 * 1024
 ILIAC_LANDMARKS = {"spine_left_iliac_crest", "spine_right_iliac_crest"}
+UPLOAD_CHUNK = 1024 * 1024
 
 
 def rows(path):
@@ -102,6 +103,29 @@ def archive_label(header):
     return name[:100] or "Новый пакет исследований"
 
 
+def archive_contains_dicom(archive):
+    from scripts.prepare_artifacts import is_dicom_member
+
+    for info in archive.infolist():
+        if info.is_dir() or info.file_size > 128 * 1024 * 1024:
+            continue
+        raw = archive.read(info)
+        if is_dicom_member(info.filename, raw):
+            return True
+    return False
+
+
+def save_request_body(stream, target, length):
+    remaining = length
+    with target.open("wb") as output:
+        while remaining:
+            chunk = stream.read(min(UPLOAD_CHUNK, remaining))
+            if not chunk:
+                raise ValueError("Upload ended before Content-Length")
+            output.write(chunk)
+            remaining -= len(chunk)
+
+
 def run_job(job):
     with LOCK:
         job["status"] = "running"
@@ -144,14 +168,25 @@ def reconstruction_enabled():
     return reconstruction_status()[0]
 
 
+def reconstruction_command(input_path, output_path):
+    return [
+        os.environ.get("DXA3D_PYTHON", sys.executable),
+        "-m",
+        "viewer.reconstruct",
+        "--input",
+        str(input_path),
+        "--output",
+        str(output_path),
+    ]
+
+
 def reconstruct(job, item):
     folder = STORE / job["id"] / ("3d-" + item["id"])
     folder.mkdir(parents=True, exist_ok=True)
     try:
         image_bytes(job, item).save(folder / "input.png")
         with (folder / "reconstruction.log").open("w") as log:
-            subprocess.run([os.environ.get("DXA3D_PYTHON", sys.executable), str(Path(__file__).parent / "reconstruct.py"),
-                            "--input", str(folder / "input.png"), "--output", str(folder / "result.json")],
+            subprocess.run(reconstruction_command(folder / "input.png", folder / "result.json"),
                            cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=180)
         value = json.loads((folder / "result.json").read_text())
         with LOCK:
@@ -221,26 +256,24 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_data({"error": "Недопустимый источник запроса"}, 403)
         parts = urlparse(self.path).path.strip("/").split("/")
         if parts == ["api", "jobs"]:
+            folder = None
             try:
                 length = int(self.headers.get("Content-Length", "0"))
-                if not 0 < length <= MAX_UPLOAD:
-                    return self.send_data({"error": "Допустим ZIP размером до 512 МБ"}, 413)
+                if length <= 0:
+                    return self.send_data({"error": "Архив пуст или не передан"}, 400)
                 with LOCK:
                     if sum(j["status"] in {"queued", "running"} for j in JOBS.values()) >= 4:
                         return self.send_data({"error": "Очередь заполнена. Дождитесь завершения анализа."}, 429)
-                payload = self.rfile.read(length)
-                if len(payload) != length:
-                    raise ValueError()
-                with zipfile.ZipFile(io.BytesIO(payload)) as z:
-                    if not any(n.lower().endswith(".dcm") for n in z.namelist()):
-                        raise ValueError()
-                    if len(z.infolist()) > 10000 or sum(i.file_size for i in z.infolist()) > 2 * 1024**3:
-                        raise ValueError()
                 key = uuid.uuid4().hex
                 folder = STORE / key
                 folder.mkdir(parents=True)
                 source = folder / "input.zip"
-                source.write_bytes(payload)
+                save_request_body(self.rfile, source, length)
+                with zipfile.ZipFile(source) as z:
+                    if len(z.infolist()) > 10000 or sum(i.file_size for i in z.infolist()) > 2 * 1024**3:
+                        raise ValueError()
+                    if not archive_contains_dicom(z):
+                        raise ValueError()
                 job = {"id": key, "name": archive_label(self.headers.get("X-Archive-Name")),
                        "created": time.time(), "status": "queued",
                        "archived": False, "images": [], "reconstructions": {}, "_input": source, "_folder": folder}
@@ -249,7 +282,9 @@ class Handler(SimpleHTTPRequestHandler):
                 POOL.submit(run_job, job)
                 return self.send_data(snapshot(job), 202)
             except (ValueError, zipfile.BadZipFile):
-                return self.send_data({"error": "Нужен корректный ZIP с файлами .dcm, до 10 000 файлов и 2 ГБ после распаковки"}, 400)
+                if folder is not None:
+                    shutil.rmtree(folder, ignore_errors=True)
+                return self.send_data({"error": "Нужен корректный ZIP с DICOM-файлами, до 10 000 файлов и 2 ГБ после распаковки"}, 400)
         if len(parts) == 6 and parts[:2] == ["api", "jobs"] and parts[3] == "images" and parts[5] == "reconstruct":
             if not reconstruction_enabled():
                 return self.send_data({"error": reconstruction_status()[1]}, 503)
