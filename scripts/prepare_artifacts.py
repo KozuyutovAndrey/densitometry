@@ -88,8 +88,19 @@ class DicomLite:
     private_tag_count: int
 
 
-def is_dicom_member(name: str) -> bool:
-    return not name.endswith("/") and name.lower().endswith(".dcm")
+def is_dicom_member(name: str, raw: bytes | None = None) -> bool:
+    """Recognize DICOM files even when a PACS export omits ``.dcm``."""
+    if name.endswith("/"):
+        return False
+    if name.lower().endswith(".dcm"):
+        return True
+    if raw is None:
+        return False
+    try:
+        meta = read_dicom_lite(raw).meta
+        return bool(meta.get("Rows") and meta.get("Columns"))
+    except (ValueError, IndexError, struct.error):
+        return False
 
 
 def clean_text(value: bytes) -> str:
