@@ -180,6 +180,24 @@ def reconstruction_command(input_path, output_path):
     ]
 
 
+def gradcam_bytes(job, item, task):
+    if item.get("anatomical_region") != "spine":
+        raise ValueError("Grad-CAM is available only for spine images")
+    if task not in {"positioning", "artifact"}:
+        raise ValueError("Unsupported Grad-CAM task")
+    folder = STORE / job["id"] / "gradcam"
+    folder.mkdir(parents=True, exist_ok=True)
+    cached = folder / f"{item['id']}-{task}.png"
+    if not cached.exists():
+        from viewer.gradcam import gradcam_png_bytes
+
+        try:
+            cached.write_bytes(gradcam_png_bytes(image_bytes(job, item), task))
+        except RuntimeError as exc:
+            raise ValueError(str(exc)) from exc
+    return cached.read_bytes()
+
+
 def reconstruct(job, item):
     folder = STORE / job["id"] / ("3d-" + item["id"])
     folder.mkdir(parents=True, exist_ok=True)
@@ -246,6 +264,10 @@ class Handler(SimpleHTTPRequestHandler):
                 out = io.BytesIO()
                 image_bytes(job, item).save(out, format="PNG")
                 return self.send_data(out.getvalue(), content_type="image/png")
+            if len(parts) == 7 and parts[3] == "images" and parts[5] == "gradcam":
+                item = next(r for r in job["images"] if r["id"] == parts[4])
+                task = parts[6].removesuffix(".png")
+                return self.send_data(gradcam_bytes(job, item, task), content_type="image/png")
             return self.send_data({"error": "Маршрут не найден"}, 404)
         except (ValueError, KeyError, StopIteration, OSError, zipfile.BadZipFile):
             return self.send_data({"error": "Не удалось прочитать данные изображения"}, 422)

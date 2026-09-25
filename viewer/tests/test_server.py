@@ -8,7 +8,7 @@ import struct
 from pathlib import Path
 from unittest.mock import patch
 
-from viewer import reconstruct, server
+from viewer import gradcam, reconstruct, server
 from viewer.xlsx_export import workbook_bytes
 from scripts.run_full_inference import export_submission
 from scripts.prepare_artifacts import is_dicom_member
@@ -236,6 +236,25 @@ class ViewerAdapterTests(unittest.TestCase):
         self.assertIn("drawExplanationOverlay", script)
         self.assertIn("hip_lateral_margin_mm", script)
         self.assertIn("spine_axis_angle_deg", script)
+
+    def test_ui_has_gradcam_overlay_controls(self):
+        html = (server.STATIC / "index.html").read_text()
+        script = (server.STATIC / "app.js").read_text()
+        self.assertIn('id="gradcam"', html)
+        self.assertIn('id="gradcam-task"', html)
+        self.assertIn("Тепловая карта CNN", html)
+        self.assertIn("loadGradcam", script)
+        self.assertIn("drawGradcam", script)
+
+    def test_gradcam_rejects_non_spine_images(self):
+        with self.assertRaises(ValueError):
+            server.gradcam_bytes({"id": "job"}, {"id": "1", "anatomical_region": "left_hip"}, "artifact")
+
+    def test_gradcam_heatmap_colorizer_returns_transparent_png_layer(self):
+        layer = gradcam.colorize_heatmap(gradcam.normalize_heatmap(__import__("numpy").array([[0.0, 2.0], [1.0, 4.0]])), "artifact")
+        self.assertEqual("RGBA", layer.mode)
+        self.assertEqual((2, 2), layer.size)
+        self.assertGreater(__import__("numpy").asarray(layer.getchannel("A")).max(), 0)
 
 
 if __name__ == "__main__":

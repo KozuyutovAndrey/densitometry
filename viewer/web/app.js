@@ -2,7 +2,7 @@ const $ = (id) => document.getElementById(id);
 
 const state = {
   jobs: [], job: null, image: null, filtered: [], health: null,
-  bitmap: null, zoom: 1, panX: 0, panY: 0, dragging: false, lastX: 0, lastY: 0,
+  bitmap: null, gradcam: null, gradcamKey: "", zoom: 1, panX: 0, panY: 0, dragging: false, lastX: 0, lastY: 0,
   pollTimer: null,
   view3d: { yaw: -0.6, pitch: 0.15, scale: 1.3, dragging: false, x: 0, y: 0 },
 };
@@ -135,7 +135,7 @@ function updateProcessingOverlay() {
 
 function chooseImage(image) {
   state.image = image;
-  state.bitmap = null;
+  state.bitmap = null; state.gradcam = null; state.gradcamKey = "";
   state.zoom = 1; state.panX = 0; state.panY = 0;
   renderAll();
   loadPreview();
@@ -211,6 +211,7 @@ function renderImageDetail() {
   $("meta-image").textContent = image?.image_uid || "—";
   $("image-size").textContent = image?.width && image?.height ? `${image.width} × ${image.height} px` : "—";
   renderFindings();
+  updateGradcamControls();
   update3dPanel();
   if (image && !state.bitmap) loadPreview(); else drawImage();
 }
@@ -245,6 +246,17 @@ function renderFindings() {
   }
   if (!count) measurements.append(node("div", "metric", "Числовые измерения недоступны"));
   $("source-note").textContent = `Результат локальной пакетной обработки. Landmarks: ${image.landmark_model || "нет данных"}.`;
+}
+
+function updateGradcamControls() {
+  const available = state.image?.anatomical_region === "spine" && state.image?.processing_status === "Success";
+  $("gradcam").disabled = !available;
+  $("gradcam-task").disabled = !available || !$("gradcam").checked;
+  if (!available) {
+    $("gradcam").checked = false;
+    state.gradcam = null;
+    state.gradcamKey = "";
+  }
 }
 
 function addFinding(container, title, description, bad) {
@@ -416,6 +428,34 @@ function drawExplanationOverlay(ctx, image, transform) {
   if (["left_hip", "right_hip"].includes(image.anatomical_region)) drawHipExplanation(ctx, image, transform);
 }
 
+
+function currentGradcamKey() {
+  if (!state.job || !state.image) return "";
+  return `${state.job.id}:${state.image.id}:${$("gradcam-task").value}`;
+}
+
+function loadGradcam() {
+  if (!$('gradcam').checked || !state.job || !state.image || state.image.anatomical_region !== "spine") return;
+  const key = currentGradcamKey();
+  if (!key || state.gradcamKey === key && state.gradcam) return;
+  state.gradcam = null;
+  state.gradcamKey = key;
+  const source = new Image();
+  source.onload = () => { if (state.gradcamKey === key) { state.gradcam = source; drawImage(); } };
+  source.onerror = () => { if (state.gradcamKey === key) showNotice("Не удалось построить тепловую карту CNN", true); };
+  source.src = `/api/jobs/${encodeURIComponent(state.job.id)}/images/${encodeURIComponent(state.image.id)}/gradcam/${encodeURIComponent($("gradcam-task").value)}.png`;
+}
+
+function drawGradcam(ctx, transform) {
+  if (!$('gradcam').checked || !state.gradcam || !state.image || state.image.anatomical_region !== "spine") return;
+  if (state.gradcamKey !== currentGradcamKey()) return;
+  ctx.save();
+  ctx.globalAlpha = .82;
+  ctx.drawImage(state.gradcam, transform.x, transform.y, state.image.width * transform.scale, state.image.height * transform.scale);
+  ctx.restore();
+  drawLabel(ctx, transform.x + 12 * (window.devicePixelRatio || 1), transform.y + 54 * (window.devicePixelRatio || 1), `Grad-CAM: ${$("gradcam-task").value === "artifact" ? "артефакты" : "укладка"}`, "#ff9e48");
+}
+
 async function loadPreview() {
   if (!state.image || !state.job) return;
   const source = new Image();
@@ -448,6 +488,7 @@ function drawImage() {
   ctx.drawImage(state.bitmap, x, y, state.bitmap.width * scale, state.bitmap.height * scale);
   ctx.filter = "none";
   const transform = { x, y, scale };
+  if ($("gradcam").checked) { drawGradcam(ctx, transform); loadGradcam(); }
   if ($("explain").checked) drawExplanationOverlay(ctx, state.image, transform);
   if ($("landmarks").checked) {
     for (const point of state.image.landmarks || []) {
@@ -574,6 +615,8 @@ async function init() {
   $("job-select").addEventListener("change",event=>{state.job=state.jobs.find(j=>j.id===event.target.value);state.image=null;state.bitmap=null;renderAll()});
   ["search","region","quality"].forEach(id=>$(id).addEventListener(id==="search"?"input":"change",renderAll));
   $("refresh").addEventListener("click",()=>loadJobs()); $("landmarks").addEventListener("change",drawImage); $("explain").addEventListener("change",drawImage);
+  $("gradcam").addEventListener("change",()=>{updateGradcamControls(); if($("gradcam").checked)loadGradcam(); drawImage()});
+  $("gradcam-task").addEventListener("change",()=>{state.gradcam=null; state.gradcamKey=""; loadGradcam(); drawImage()});
   ["brightness","contrast"].forEach(id=>$(id).addEventListener("input",drawImage));
   $("zoom-in").addEventListener("click",()=>{state.zoom=Math.min(4,state.zoom*1.15);drawImage()}); $("zoom-out").addEventListener("click",()=>{state.zoom=Math.max(.5,state.zoom/1.15);drawImage()});
   $("reset").addEventListener("click",()=>{state.zoom=1;state.panX=0;state.panY=0;$("brightness").value=100;$("contrast").value=100;drawImage()});

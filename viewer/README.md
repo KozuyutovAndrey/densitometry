@@ -72,6 +72,7 @@ sudo systemctl reload nginx
 | `GET` | `/api/jobs/{job_id}/export.csv` | Скачать итоговую таблицу |
 | `GET` | `/api/jobs/{job_id}/export.xlsx` | Скачать итоговую таблицу в Excel |
 | `GET` | `/api/jobs/{job_id}/images/{image_id}/preview.png` | Получить PNG-превью DICOM |
+| `GET` | `/api/jobs/{job_id}/images/{image_id}/gradcam/{task}.png` | Получить Grad-CAM overlay для spine-классификатора (`positioning` или `artifact`) |
 | `POST` | `/api/jobs/{job_id}/images/{image_id}/reconstruct` | Запустить 3D для spine-снимка |
 
 `POST /api/jobs` принимает `application/zip` без multipart-обёртки и записывает
@@ -93,6 +94,15 @@ python scripts/run_full_inference.py \
 `time_of_processing` измеряется отдельно для каждого DICOM на этапах landmark
 inference и классификации; общая однократная загрузка моделей в это поле не
 включается.
+
+## Explainability Overlay
+
+В 2D-просмотре есть два независимых слоя объяснения:
+
+- `Объяснение` — геометрические линии, углы и ROI-отступы по landmarks;
+- `Тепловая карта CNN` — Grad-CAM для spine-классификаторов `positioning` и `artifact`.
+
+Grad-CAM строится лениво по запросу UI, кешируется в папке задания и не влияет на итоговый CSV. Для бедра Grad-CAM не используется: ROI и ротация объясняются геометрией.
 
 ## DXA-to-3D
 
