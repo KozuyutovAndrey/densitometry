@@ -86,7 +86,7 @@ class ViewerAdapterTests(unittest.TestCase):
         self.assertIn("Недостаточный верхний захват", hip)
         self.assertIn("Недостаточный латеральный захват", hip)
 
-    def test_hip_lesser_lower_x_order_alone_does_not_mark_quality_bad(self):
+    def test_hip_landmark_order_marks_quality_bad(self):
         inference_row = {
             "anatomical_region": "right_hip",
             "columns": "300",
@@ -113,8 +113,9 @@ class ViewerAdapterTests(unittest.TestCase):
             "hip_ischium_edge_y": "360",
         }
         quality = quality_rules.evaluate_canonical(inference_row, landmarks, "test")
-        self.assertEqual(0, quality["quality_class"])
-        self.assertEqual("", quality["violation_type"])
+        self.assertEqual(1, quality["quality_class"])
+        self.assertIn("hip_positioning_rotation", quality["violation_type"])
+        self.assertEqual(1, quality["hip_positioning_order_bad"])
 
     def test_spine_positioning_bad_hides_iliac_landmarks(self):
         with tempfile.TemporaryDirectory() as directory:

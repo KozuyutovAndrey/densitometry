@@ -31,6 +31,10 @@ SPINE_CENTER_KEYS = [
     "spine_l4_center",
     "spine_l5_center",
 ]
+HIP_GREATER_TOP_KEY = "hip_greater_trochanter_top_edge"
+HIP_GREATER_LATERAL_KEY = "hip_greater_trochanter_lateral_edge"
+HIP_LESSER_UPPER_KEY = "hip_lesser_trochanter_upper"
+HIP_LESSER_LOWER_KEY = "hip_lesser_trochanter_lower"
 
 
 def read_csv(path: Path) -> list[dict[str, str]]:
@@ -136,6 +140,24 @@ def hip_metrics(row: dict[str, str], anatomical_region: str, columns: float, row
     return out
 
 
+def hip_positioning_order_bad(row: dict[str, str], anatomical_region: str) -> bool:
+    greater_top = point(row, HIP_GREATER_TOP_KEY)
+    greater_lateral = point(row, HIP_GREATER_LATERAL_KEY)
+    lesser_upper = point(row, HIP_LESSER_UPPER_KEY)
+    lesser_lower = point(row, HIP_LESSER_LOWER_KEY)
+    if not all([greater_top, greater_lateral, lesser_upper, lesser_lower]):
+        return False
+
+    vertical_ok = greater_top[1] < greater_lateral[1] < lesser_upper[1]
+    if anatomical_region == "right_hip":
+        horizontal_ok = greater_lateral[0] < greater_top[0] < lesser_lower[0]
+    elif anatomical_region == "left_hip":
+        horizontal_ok = greater_lateral[0] > greater_top[0] > lesser_lower[0]
+    else:
+        horizontal_ok = True
+    return not (vertical_ok and horizontal_ok)
+
+
 def fmt(value: Any) -> str:
     if value == "":
         return ""
@@ -187,11 +209,13 @@ def evaluate_canonical(
         columns = float(inference_row["columns"])
         rows = float(inference_row["rows"])
         metrics = hip_metrics(landmark_row, region, columns, rows)
+        metrics["hip_positioning_order_bad"] = int(hip_positioning_order_bad(landmark_row, region))
         prominence = metrics["hip_lesser_prominence_mm"]
         top = metrics["hip_top_margin_mm"]
         lateral = metrics["hip_lateral_margin_mm"]
         bottom = metrics["hip_bottom_margin_mm"]
         structure_missing = top == "" or lateral == "" or bottom == ""
+        positioning_order_bad = bool(metrics["hip_positioning_order_bad"])
         rotation_bad = (
             prominence == ""
             or float(prominence) <= HIP_LESSER_PROMINENCE_LOW_THRESHOLD_MM
@@ -205,7 +229,7 @@ def evaluate_canonical(
             or float(lateral) < HIP_ROI_LATERAL_THRESHOLD_MM
             or float(bottom) < HIP_ROI_BOTTOM_THRESHOLD_MM
         )
-        if structure_missing or rotation_bad:
+        if structure_missing or positioning_order_bad or rotation_bad:
             violations.append("hip_positioning_rotation")
         if roi_bad:
             violations.append("hip_roi")
@@ -281,6 +305,7 @@ def build_quality_rows(
                 "spine_artifact_prob_bad": fmt(quality.get("spine_artifact_prob_bad", "")),
                 "spine_artifact_pred_bad": fmt(quality.get("spine_artifact_pred_bad", "")),
                 "hip_lesser_prominence_mm": fmt(quality.get("hip_lesser_prominence_mm", "")),
+                "hip_positioning_order_bad": fmt(quality.get("hip_positioning_order_bad", "")),
                 "hip_top_margin_mm": fmt(quality.get("hip_top_margin_mm", "")),
                 "hip_lateral_margin_mm": fmt(quality.get("hip_lateral_margin_mm", "")),
                 "hip_bottom_margin_mm": fmt(quality.get("hip_bottom_margin_mm", "")),
@@ -329,6 +354,7 @@ def main() -> None:
         "spine_artifact_prob_bad",
         "spine_artifact_pred_bad",
         "hip_lesser_prominence_mm",
+        "hip_positioning_order_bad",
         "hip_top_margin_mm",
         "hip_lateral_margin_mm",
         "hip_bottom_margin_mm",
