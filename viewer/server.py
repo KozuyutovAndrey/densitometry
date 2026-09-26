@@ -24,7 +24,7 @@ STATIC = Path(__file__).parent / "web"
 STORE = ROOT / "artifacts" / "viewer_jobs"
 sys.path.insert(0, str(ROOT))
 
-FIELDS = ["path_to_study", "study_uid", "image_uid", "anatomical_region", "quality_class", "violation_type", "processing_status", "time_of_processing"]
+FIELDS = ["path_to_study", "study_uid", "image_uid", "anatomical_region", "quality_class", "violation_type", "violation_description", "processing_status", "time_of_processing"]
 JOBS: dict[str, dict] = {}
 LOCK = threading.RLock()
 POOL = ThreadPoolExecutor(max_workers=1)
@@ -67,6 +67,94 @@ def visible_landmark_points(point_row, detail):
     return points
 
 
+HIP_LESSER_PROMINENCE_LOW_THRESHOLD_MM = 0.200
+HIP_LESSER_PROMINENCE_HIGH_THRESHOLD_MM = 6.346
+HIP_ROI_TOP_THRESHOLD_MM = 30.0
+HIP_ROI_LATERAL_THRESHOLD_MM = 20.0
+HIP_ROI_BOTTOM_THRESHOLD_MM = 30.0
+HIP_ROI_LESSER_LOWER_BOTTOM_THRESHOLD_MM = 30.0
+
+
+def violation_codes(row):
+    return {value.strip() for value in (row.get("violation_type") or "").split(";") if value.strip()}
+
+
+def landmark_point(point_row, key):
+    if point_row.get(f"{key}_visible") != "1":
+        return None
+    x = number(point_row.get(f"{key}_x"))
+    y = number(point_row.get(f"{key}_y"))
+    if x is None or y is None:
+        return None
+    return {"x": x, "y": y}
+
+
+def hip_landmark_order_is_bad(point_row, region):
+    greater_top = landmark_point(point_row, "hip_greater_trochanter_top_edge")
+    greater_lateral = landmark_point(point_row, "hip_greater_trochanter_lateral_edge")
+    lesser_upper = landmark_point(point_row, "hip_lesser_trochanter_upper")
+    lesser_lower = landmark_point(point_row, "hip_lesser_trochanter_lower")
+    if not all([greater_top, greater_lateral, lesser_upper, lesser_lower]):
+        return False
+
+    vertical_ok = greater_top["y"] < greater_lateral["y"] < lesser_upper["y"]
+    return not vertical_ok
+
+
+def hip_positioning_is_bad(point_row, region):
+    required = [
+        landmark_point(point_row, "hip_greater_trochanter_top_edge"),
+        landmark_point(point_row, "hip_greater_trochanter_lateral_edge"),
+        landmark_point(point_row, "hip_ischium_edge"),
+    ]
+    return not all(required) or hip_landmark_order_is_bad(point_row, region)
+
+
+def violation_description(row, detail, point_row):
+    codes = violation_codes(row)
+    descriptions = []
+    region = row.get("anatomical_region", "")
+
+    if "spine_positioning" in codes:
+        descriptions.append("Не обнаружены подвздошные кости на снимке")
+    if "spine_axis" in codes:
+        angle = number(detail.get("spine_axis_angle_deg"))
+        descriptions.append("Отклонение оси позвоночника" + (f" ({angle:.1f}°)" if angle is not None else ""))
+    if "spine_artifact" in codes:
+        descriptions.append("Обнаружены признаки артефакта или постороннего предмета")
+
+    if "hip_positioning_rotation" in codes and region in {"left_hip", "right_hip"}:
+        if hip_positioning_is_bad(point_row, region):
+            descriptions.append("Некорректное позиционирование")
+        prominence = number(detail.get("hip_lesser_prominence_mm"))
+        if prominence is None:
+            descriptions.append("Ротация бедра (избыточная)")
+        elif prominence <= HIP_LESSER_PROMINENCE_LOW_THRESHOLD_MM:
+            descriptions.append("Ротация бедра (избыточная)")
+        elif prominence >= HIP_LESSER_PROMINENCE_HIGH_THRESHOLD_MM:
+            descriptions.append("Ротация бедра (недостаточная)")
+
+    if "hip_roi" in codes:
+        top = number(detail.get("hip_top_margin_mm"))
+        lateral = number(detail.get("hip_lateral_margin_mm"))
+        bottom = number(detail.get("hip_bottom_margin_mm"))
+        lesser_lower_bottom = number(detail.get("hip_lesser_lower_bottom_margin_mm"))
+        if top is None or top < HIP_ROI_TOP_THRESHOLD_MM:
+            descriptions.append("Недостаточный верхний захват")
+        if (bottom is None or bottom < HIP_ROI_BOTTOM_THRESHOLD_MM or (lesser_lower_bottom is not None and lesser_lower_bottom < HIP_ROI_LESSER_LOWER_BOTTOM_THRESHOLD_MM)):
+            descriptions.append("Недостаточный нижний захват")
+        if lateral is None or lateral < HIP_ROI_LATERAL_THRESHOLD_MM:
+            descriptions.append("Недостаточный латеральный захват")
+
+    seen = set()
+    unique = []
+    for item in descriptions:
+        if item not in seen:
+            unique.append(item)
+            seen.add(item)
+    return "; ".join(unique)
+
+
 def results(submission, work):
     debug = rows(work / "quality_predictions_debug.csv")
     skeleton = {r["member"]: r for r in rows(work / "inference_skeleton.csv")}
@@ -83,11 +171,12 @@ def results(submission, work):
         point_row = landmarks.get(member, {})
         points = visible_landmark_points(point_row, detail)
         output.append({**row, "id": str(i), "member": member,
+                       "violation_description": violation_description(row, detail, point_row),
                        "filename": detail.get("filename", Path(member).name),
                        "width": number(skeleton.get(member, {}).get("columns")),
                        "height": number(skeleton.get(member, {}).get("rows")),
                        "landmarks": points, "landmark_model": point_row.get("landmark_model", ""),
-                       "metrics": {k: number(detail.get(k)) for k in ["spine_axis_angle_deg", "hip_lesser_prominence_mm", "hip_top_margin_mm", "hip_bottom_margin_mm", "hip_lateral_margin_mm"]}})
+                       "metrics": {k: number(detail.get(k)) for k in ["spine_axis_angle_deg", "hip_lesser_prominence_mm", "hip_top_margin_mm", "hip_bottom_margin_mm", "hip_lateral_margin_mm", "hip_lesser_lower_bottom_margin_mm"]}})
     return output
 
 
@@ -180,6 +269,24 @@ def reconstruction_command(input_path, output_path):
     ]
 
 
+def gradcam_bytes(job, item, task):
+    if item.get("anatomical_region") != "spine":
+        raise ValueError("Grad-CAM is available only for spine images")
+    if task not in {"positioning", "artifact"}:
+        raise ValueError("Unsupported Grad-CAM task")
+    folder = STORE / job["id"] / "gradcam"
+    folder.mkdir(parents=True, exist_ok=True)
+    cached = folder / f"{item['id']}-{task}.png"
+    if not cached.exists():
+        from viewer.gradcam import gradcam_png_bytes
+
+        try:
+            cached.write_bytes(gradcam_png_bytes(image_bytes(job, item), task))
+        except RuntimeError as exc:
+            raise ValueError(str(exc)) from exc
+    return cached.read_bytes()
+
+
 def reconstruct(job, item):
     folder = STORE / job["id"] / ("3d-" + item["id"])
     folder.mkdir(parents=True, exist_ok=True)
@@ -246,6 +353,10 @@ class Handler(SimpleHTTPRequestHandler):
                 out = io.BytesIO()
                 image_bytes(job, item).save(out, format="PNG")
                 return self.send_data(out.getvalue(), content_type="image/png")
+            if len(parts) == 7 and parts[3] == "images" and parts[5] == "gradcam":
+                item = next(r for r in job["images"] if r["id"] == parts[4])
+                task = parts[6].removesuffix(".png")
+                return self.send_data(gradcam_bytes(job, item, task), content_type="image/png")
             return self.send_data({"error": "Маршрут не найден"}, 404)
         except (ValueError, KeyError, StopIteration, OSError, zipfile.BadZipFile):
             return self.send_data({"error": "Не удалось прочитать данные изображения"}, 422)

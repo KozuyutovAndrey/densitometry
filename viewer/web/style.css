@@ -75,6 +75,7 @@ h2 span{color:var(--muted);font-size:12px;font-weight:400;margin-left:6px}
 .card-status{font-size:10px;color:var(--teal)}
 .card-status.bad{color:var(--amber)}
 .card-status.failed{color:#a54c4c}
+.card-reason{display:block;margin-top:4px;font-size:10px;line-height:1.35;color:#7f5d25;white-space:normal}
 .list-footer{border-top:1px solid var(--line);padding:12px;font-size:10px;color:var(--muted)}
 .exam-heading{padding:19px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px}
 .exam-heading h2{font-size:18px;margin-top:4px}
@@ -88,6 +89,7 @@ h2 span{color:var(--muted);font-size:12px;font-weight:400;margin-left:6px}
 .viewer-toolbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;font-size:11px;gap:10px}
 .viewer-toolbar>div{display:flex;gap:9px;align-items:center}
 .viewer-toggles{flex-wrap:wrap}
+.viewer-toggles select{min-width:98px;padding:4px 6px;font-size:11px}
 .viewer-toolbar button{font-size:11px;padding:2px 6px;border:0}
 .viewer-toolbar label{display:flex;align-items:center;gap:5px;color:#687980;white-space:nowrap}
 input[type=checkbox]{accent-color:var(--teal)}

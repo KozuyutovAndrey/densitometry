@@ -5,11 +5,14 @@ import tempfile
 import unittest
 import zipfile
 import struct
+import sys
 from pathlib import Path
 from unittest.mock import patch
 
-from viewer import reconstruct, server
+from viewer import gradcam, reconstruct, server
 from viewer.xlsx_export import workbook_bytes
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
+from scripts import apply_quality_rules as quality_rules
 from scripts.run_full_inference import export_submission
 from scripts.prepare_artifacts import is_dicom_member
 
@@ -41,6 +44,138 @@ class ViewerAdapterTests(unittest.TestCase):
     def test_snapshot_does_not_expose_local_paths(self):
         public = server.snapshot({"id": "job", "status": "queued", "_input": Path("private.zip")})
         self.assertEqual({"id": "job", "status": "queued"}, public)
+
+    def test_violation_description_explains_spine_and_hip_details(self):
+        spine = server.violation_description(
+            {"anatomical_region": "spine", "violation_type": "spine_positioning;spine_artifact"},
+            {"spine_axis_angle_deg": ""},
+            {},
+        )
+        self.assertIn("Не обнаружены подвздошные кости", spine)
+        self.assertIn("артефакта", spine)
+
+        hip_points = {
+            "hip_greater_trochanter_top_edge_visible": "1",
+            "hip_greater_trochanter_top_edge_x": "100",
+            "hip_greater_trochanter_top_edge_y": "100",
+            "hip_greater_trochanter_lateral_edge_visible": "1",
+            "hip_greater_trochanter_lateral_edge_x": "120",
+            "hip_greater_trochanter_lateral_edge_y": "80",
+            "hip_lesser_trochanter_upper_visible": "1",
+            "hip_lesser_trochanter_upper_x": "140",
+            "hip_lesser_trochanter_upper_y": "90",
+            "hip_lesser_trochanter_lower_visible": "1",
+            "hip_lesser_trochanter_lower_x": "160",
+            "hip_lesser_trochanter_lower_y": "120",
+            "hip_ischium_edge_visible": "1",
+            "hip_ischium_edge_x": "150",
+            "hip_ischium_edge_y": "360",
+        }
+        hip = server.violation_description(
+            {"anatomical_region": "right_hip", "violation_type": "hip_positioning_rotation;hip_roi"},
+            {
+                "hip_lesser_prominence_mm": "7.0",
+                "hip_top_margin_mm": "20",
+                "hip_bottom_margin_mm": "40",
+                "hip_lateral_margin_mm": "10",
+            },
+            hip_points,
+        )
+        self.assertIn("Некорректное позиционирование", hip)
+        self.assertIn("Ротация бедра (недостаточная)", hip)
+        self.assertIn("Недостаточный верхний захват", hip)
+        self.assertIn("Недостаточный латеральный захват", hip)
+
+    def test_hip_horizontal_landmark_order_alone_does_not_mark_quality_bad(self):
+        inference_row = {
+            "anatomical_region": "right_hip",
+            "columns": "280",
+            "rows": "318",
+        }
+        landmarks = {
+            "hip_greater_trochanter_top_edge_visible": "1",
+            "hip_greater_trochanter_top_edge_x": "123",
+            "hip_greater_trochanter_top_edge_y": "74",
+            "hip_greater_trochanter_lateral_edge_visible": "1",
+            "hip_greater_trochanter_lateral_edge_x": "92",
+            "hip_greater_trochanter_lateral_edge_y": "127",
+            "hip_lesser_trochanter_upper_visible": "1",
+            "hip_lesser_trochanter_upper_x": "130",
+            "hip_lesser_trochanter_upper_y": "238",
+            "hip_lesser_trochanter_tip_visible": "1",
+            "hip_lesser_trochanter_tip_x": "124",
+            "hip_lesser_trochanter_tip_y": "254",
+            "hip_lesser_trochanter_lower_visible": "1",
+            "hip_lesser_trochanter_lower_x": "115",
+            "hip_lesser_trochanter_lower_y": "273",
+            "hip_ischium_edge_visible": "1",
+            "hip_ischium_edge_x": "242",
+            "hip_ischium_edge_y": "186",
+        }
+        quality = quality_rules.evaluate_canonical(inference_row, landmarks, "test")
+        self.assertEqual(0, quality["hip_positioning_order_bad"])
+        self.assertEqual(0, quality["quality_class"])
+
+    def test_hip_lesser_lower_near_bottom_marks_roi_bad(self):
+        inference_row = {
+            "anatomical_region": "right_hip",
+            "columns": "280",
+            "rows": "206",
+        }
+        landmarks = {
+            "hip_greater_trochanter_top_edge_visible": "1",
+            "hip_greater_trochanter_top_edge_x": "113",
+            "hip_greater_trochanter_top_edge_y": "74",
+            "hip_greater_trochanter_lateral_edge_visible": "1",
+            "hip_greater_trochanter_lateral_edge_x": "84",
+            "hip_greater_trochanter_lateral_edge_y": "121",
+            "hip_lesser_trochanter_upper_visible": "1",
+            "hip_lesser_trochanter_upper_x": "162",
+            "hip_lesser_trochanter_upper_y": "170",
+            "hip_lesser_trochanter_tip_visible": "1",
+            "hip_lesser_trochanter_tip_x": "165",
+            "hip_lesser_trochanter_tip_y": "189",
+            "hip_lesser_trochanter_lower_visible": "1",
+            "hip_lesser_trochanter_lower_x": "148",
+            "hip_lesser_trochanter_lower_y": "203",
+            "hip_ischium_edge_visible": "1",
+            "hip_ischium_edge_x": "180",
+            "hip_ischium_edge_y": "158",
+        }
+        quality = quality_rules.evaluate_canonical(inference_row, landmarks, "test")
+        self.assertIn("hip_roi", quality["violation_type"])
+        self.assertLess(float(quality["hip_lesser_lower_bottom_margin_mm"]), 30.0)
+
+    def test_hip_vertical_landmark_order_marks_quality_bad(self):
+        inference_row = {
+            "anatomical_region": "right_hip",
+            "columns": "300",
+            "rows": "400",
+        }
+        landmarks = {
+            "hip_greater_trochanter_top_edge_visible": "1",
+            "hip_greater_trochanter_top_edge_x": "100",
+            "hip_greater_trochanter_top_edge_y": "100",
+            "hip_greater_trochanter_lateral_edge_visible": "1",
+            "hip_greater_trochanter_lateral_edge_x": "80",
+            "hip_greater_trochanter_lateral_edge_y": "80",
+            "hip_lesser_trochanter_upper_visible": "1",
+            "hip_lesser_trochanter_upper_x": "120",
+            "hip_lesser_trochanter_upper_y": "120",
+            "hip_lesser_trochanter_tip_visible": "1",
+            "hip_lesser_trochanter_tip_x": "113",
+            "hip_lesser_trochanter_tip_y": "140",
+            "hip_lesser_trochanter_lower_visible": "1",
+            "hip_lesser_trochanter_lower_x": "90",
+            "hip_lesser_trochanter_lower_y": "170",
+            "hip_ischium_edge_visible": "1",
+            "hip_ischium_edge_x": "150",
+            "hip_ischium_edge_y": "360",
+        }
+        quality = quality_rules.evaluate_canonical(inference_row, landmarks, "test")
+        self.assertEqual(1, quality["quality_class"])
+        self.assertIn("hip_positioning_rotation", quality["violation_type"])
+        self.assertEqual(1, quality["hip_positioning_order_bad"])
 
     def test_spine_positioning_bad_hides_iliac_landmarks(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -214,11 +349,12 @@ class ViewerAdapterTests(unittest.TestCase):
             self.assertEqual(["0.125000", "0.875000"], [row["time_of_processing"] for row in values])
 
     def test_xlsx_export_is_a_valid_office_archive(self):
-        content = workbook_bytes([{"image_uid": "1&2", "quality_class": "1", "time_of_processing": "0.25"}], server.FIELDS)
+        content = workbook_bytes([{"image_uid": "1&2", "quality_class": "1", "violation_description": "Недостаточный верхний захват", "time_of_processing": "0.25"}], server.FIELDS)
         with zipfile.ZipFile(io.BytesIO(content)) as archive:
             self.assertEqual("PK", content[:2].decode())
             sheet = archive.read("xl/worksheets/sheet1.xml").decode()
             self.assertIn("1&amp;2", sheet)
+            self.assertIn("Недостаточный верхний захват", sheet)
             self.assertIn("<v>0.25</v>", sheet)
 
     def test_ui_has_blocking_processing_status(self):
@@ -234,8 +370,36 @@ class ViewerAdapterTests(unittest.TestCase):
         self.assertIn('id="explain"', html)
         self.assertIn("Объяснение", html)
         self.assertIn("drawExplanationOverlay", script)
+        self.assertIn("Описание нарушения", html)
+        self.assertIn("card-reason", script)
         self.assertIn("hip_lateral_margin_mm", script)
         self.assertIn("spine_axis_angle_deg", script)
+
+    def test_ui_has_gradcam_overlay_controls(self):
+        html = (server.STATIC / "index.html").read_text()
+        script = (server.STATIC / "app.js").read_text()
+        self.assertIn('id="gradcam"', html)
+        self.assertIn("Тепловая карта артефактов", html)
+        self.assertNotIn("Grad-CAM: артефакты", script)
+        self.assertIn("loadGradcam", script)
+        self.assertIn("drawGradcam", script)
+
+    def test_gradcam_rejects_non_spine_images(self):
+        with self.assertRaises(ValueError):
+            server.gradcam_bytes({"id": "job"}, {"id": "1", "anatomical_region": "left_hip"}, "artifact")
+
+    def test_gradcam_heatmap_colorizer_returns_transparent_png_layer(self):
+        layer = gradcam.colorize_heatmap(gradcam.normalize_heatmap(__import__("numpy").array([[0.0, 2.0], [1.0, 4.0]])), "artifact")
+        self.assertEqual("RGBA", layer.mode)
+        self.assertEqual((2, 2), layer.size)
+        self.assertGreater(__import__("numpy").asarray(layer.getchannel("A")).max(), 0)
+
+    def test_artifact_gradcam_png_is_empty_below_threshold(self):
+        with patch.object(gradcam, "gradcam_overlay") as overlay:
+            overlay.return_value = (__import__("PIL").Image.new("RGBA", (2, 2), (255, 120, 20, 180)), 0.1, 0.2)
+            data = gradcam.gradcam_png_bytes(__import__("PIL").Image.new("L", (2, 2)), "artifact")
+        image = __import__("PIL").Image.open(io.BytesIO(data))
+        self.assertEqual(0, __import__("numpy").asarray(image.getchannel("A")).max())
 
 
 if __name__ == "__main__":

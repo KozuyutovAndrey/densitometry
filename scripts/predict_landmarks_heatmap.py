@@ -161,7 +161,12 @@ def load_model(path: Path, device: torch.device) -> dict[str, Any] | None:
 
 
 @torch.no_grad()
-def predict_image(image: Image.Image, bundle: dict[str, Any], device: torch.device) -> dict[str, tuple[float, float]]:
+def predict_image(
+    image: Image.Image,
+    bundle: dict[str, Any],
+    device: torch.device,
+    anatomical_region: str = "",
+) -> dict[str, tuple[float, float]]:
     tensor = image_tensor(image, bundle["image_size"], device)
     logits = bundle["model"](tensor)
     probs = torch.sigmoid(logits)[0].detach().cpu()
@@ -224,7 +229,7 @@ def predict_row(
         out["landmark_status"] = f"render_failed: {exc}"
         return out
 
-    points = predict_image(image, bundle, device)
+    points = predict_image(image, bundle, device, region)
     for key, (x, y) in points.items():
         out[f"{key}_x"] = f"{x:.3f}"
         out[f"{key}_y"] = f"{y:.3f}"

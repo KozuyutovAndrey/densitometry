@@ -81,7 +81,7 @@ def predict_hip_landmarks(
 ) -> dict[str, Any]:
     out = empty_landmark_row(row, "heatmap_hip")
     image = Image.open(dataset_dir / row["image_path"])
-    points = predict_image(image, hip_bundle, device)
+    points = predict_image(image, hip_bundle, device, row.get("anatomical_region", ""))
     for key, (x, y) in points.items():
         out[f"{key}_x"] = f"{x:.3f}"
         out[f"{key}_y"] = f"{y:.3f}"
