@@ -121,7 +121,7 @@ class ViewerAdapterTests(unittest.TestCase):
             "hip_lesser_trochanter_lower": (20.0, 50.0),
         }
         heatmap_landmarks.enforce_hip_side_order(right_points, "right_hip")
-        self.assertGreaterEqual(
+        self.assertGreater(
             right_points["hip_lesser_trochanter_lower"][0],
             right_points["hip_greater_trochanter_top_edge"][0],
         )
@@ -131,7 +131,7 @@ class ViewerAdapterTests(unittest.TestCase):
             "hip_lesser_trochanter_lower": (45.0, 50.0),
         }
         heatmap_landmarks.enforce_hip_side_order(left_points, "left_hip")
-        self.assertLessEqual(
+        self.assertLess(
             left_points["hip_lesser_trochanter_lower"][0],
             left_points["hip_greater_trochanter_top_edge"][0],
         )

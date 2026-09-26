@@ -25,6 +25,7 @@ DEFAULT_OUT_CSV = ROOT / "artifacts" / "inference_landmark_predictions_heatmap.c
 ALL_KEYS = SPINE_KEYS + HIP_KEYS
 GREATER_TOP_KEY = "hip_greater_trochanter_top_edge"
 LESSER_LOWER_KEY = "hip_lesser_trochanter_lower"
+HIP_SIDE_ORDER_MIN_GAP_PX = 4.0
 LESSER_KEYS = [
     "hip_lesser_trochanter_upper",
     "hip_lesser_trochanter_tip",
@@ -84,10 +85,10 @@ def distinct_topk_points(heatmap: torch.Tensor, k: int = 12, min_distance: float
 def lower_side_violation(region: str, lower_x: float, greater_top_x: float | None) -> float:
     if greater_top_x is None:
         return 0.0
-    if region == "right_hip" and lower_x < greater_top_x:
-        return greater_top_x - lower_x
-    if region == "left_hip" and lower_x > greater_top_x:
-        return lower_x - greater_top_x
+    if region == "right_hip":
+        return max(0.0, greater_top_x + HIP_SIDE_ORDER_MIN_GAP_PX - lower_x)
+    if region == "left_hip":
+        return max(0.0, lower_x - (greater_top_x - HIP_SIDE_ORDER_MIN_GAP_PX))
     return 0.0
 
 
@@ -98,10 +99,10 @@ def enforce_hip_side_order(points: dict[str, tuple[float, float]], region: str) 
         return
     greater_top_x, _greater_top_y = greater_top
     lower_x, lower_y = lower
-    if region == "right_hip" and lower_x < greater_top_x:
-        points[LESSER_LOWER_KEY] = (greater_top_x, lower_y)
-    elif region == "left_hip" and lower_x > greater_top_x:
-        points[LESSER_LOWER_KEY] = (greater_top_x, lower_y)
+    if region == "right_hip" and lower_x < greater_top_x + HIP_SIDE_ORDER_MIN_GAP_PX:
+        points[LESSER_LOWER_KEY] = (greater_top_x + HIP_SIDE_ORDER_MIN_GAP_PX, lower_y)
+    elif region == "left_hip" and lower_x > greater_top_x - HIP_SIDE_ORDER_MIN_GAP_PX:
+        points[LESSER_LOWER_KEY] = (greater_top_x - HIP_SIDE_ORDER_MIN_GAP_PX, lower_y)
 
 
 def constrained_lesser_points(
