@@ -256,6 +256,13 @@ class ViewerAdapterTests(unittest.TestCase):
         self.assertEqual((2, 2), layer.size)
         self.assertGreater(__import__("numpy").asarray(layer.getchannel("A")).max(), 0)
 
+    def test_artifact_gradcam_png_is_empty_below_threshold(self):
+        with patch.object(gradcam, "gradcam_overlay") as overlay:
+            overlay.return_value = (__import__("PIL").Image.new("RGBA", (2, 2), (255, 120, 20, 180)), 0.1, 0.2)
+            data = gradcam.gradcam_png_bytes(__import__("PIL").Image.new("L", (2, 2)), "artifact")
+        image = __import__("PIL").Image.open(io.BytesIO(data))
+        self.assertEqual(0, __import__("numpy").asarray(image.getchannel("A")).max())
+
 
 if __name__ == "__main__":
     unittest.main()

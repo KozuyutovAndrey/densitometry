@@ -105,7 +105,9 @@ def gradcam_overlay(image: Image.Image, task: str) -> tuple[Image.Image, float, 
 
 
 def gradcam_png_bytes(image: Image.Image, task: str) -> bytes:
-    overlay, _prob, _threshold = gradcam_overlay(image, task)
+    overlay, prob_bad, threshold = gradcam_overlay(image, task)
+    if task == "artifact" and prob_bad < threshold:
+        overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
     output = BytesIO()
     overlay.save(output, format="PNG")
     return output.getvalue()
