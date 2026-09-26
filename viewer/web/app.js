@@ -161,6 +161,7 @@ function renderList() {
     text.append(node("small", "", image.filename || image.image_uid));
     const q = qualityInfo(image);
     text.append(node("span", `card-status ${q.className}`, q.label));
+    if (image.quality_class === "1" && image.violation_description) text.append(node("span", "card-reason", image.violation_description));
     button.append(thumb, text);
     button.addEventListener("click", () => chooseImage(image));
     list.append(button);
@@ -173,7 +174,7 @@ function renderTable() {
   if (!state.filtered.length) {
     const row = node("tr");
     const cell = node("td", "", state.job?.status === "completed" ? "Нет строк, соответствующих фильтрам" : "Таблица будет заполнена после обработки");
-    cell.colSpan = 6;
+    cell.colSpan = 7;
     row.append(cell); body.append(row); return;
   }
   for (const image of state.filtered) {
@@ -184,7 +185,7 @@ function renderTable() {
     qualityCell.append(node("span", `table-quality ${q.className}`, q.label));
     const values = [
       image.filename || "—", regionNames[image.anatomical_region] || image.anatomical_region || "—",
-      qualityCell, violationLabels(image).join(", ") || "—", image.processing_status || "—", image.time_of_processing || "—",
+      qualityCell, violationLabels(image).join(", ") || "—", image.violation_description || "—", image.processing_status || "—", image.time_of_processing || "—",
     ];
     for (const value of values) row.append(value instanceof HTMLElement ? value : node("td", "", value));
     row.addEventListener("click", () => chooseImage(image));
@@ -452,7 +453,6 @@ function drawGradcam(ctx, transform) {
   ctx.globalAlpha = .82;
   ctx.drawImage(state.gradcam, transform.x, transform.y, state.image.width * transform.scale, state.image.height * transform.scale);
   ctx.restore();
-  drawLabel(ctx, transform.x + 12 * (window.devicePixelRatio || 1), transform.y + 54 * (window.devicePixelRatio || 1), "Grad-CAM: артефакты", "#ff9e48");
 }
 
 async function loadPreview() {

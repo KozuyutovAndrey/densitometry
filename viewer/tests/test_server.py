@@ -42,6 +42,44 @@ class ViewerAdapterTests(unittest.TestCase):
         public = server.snapshot({"id": "job", "status": "queued", "_input": Path("private.zip")})
         self.assertEqual({"id": "job", "status": "queued"}, public)
 
+    def test_violation_description_explains_spine_and_hip_details(self):
+        spine = server.violation_description(
+            {"anatomical_region": "spine", "violation_type": "spine_positioning;spine_artifact"},
+            {"spine_axis_angle_deg": ""},
+            {},
+        )
+        self.assertIn("Не обнаружены подвздошные кости", spine)
+        self.assertIn("артефакта", spine)
+
+        hip_points = {
+            "hip_greater_trochanter_top_edge_visible": "1",
+            "hip_greater_trochanter_top_edge_x": "100",
+            "hip_greater_trochanter_top_edge_y": "100",
+            "hip_greater_trochanter_lateral_edge_visible": "1",
+            "hip_greater_trochanter_lateral_edge_x": "120",
+            "hip_greater_trochanter_lateral_edge_y": "80",
+            "hip_lesser_trochanter_upper_visible": "1",
+            "hip_lesser_trochanter_upper_x": "140",
+            "hip_lesser_trochanter_upper_y": "90",
+            "hip_lesser_trochanter_lower_visible": "1",
+            "hip_lesser_trochanter_lower_x": "160",
+            "hip_lesser_trochanter_lower_y": "120",
+        }
+        hip = server.violation_description(
+            {"anatomical_region": "right_hip", "violation_type": "hip_positioning_rotation;hip_roi"},
+            {
+                "hip_lesser_prominence_mm": "7.0",
+                "hip_top_margin_mm": "20",
+                "hip_bottom_margin_mm": "40",
+                "hip_lateral_margin_mm": "10",
+            },
+            hip_points,
+        )
+        self.assertIn("Некорректное позиционирование", hip)
+        self.assertIn("Ротация бедра (недостаточная)", hip)
+        self.assertIn("Недостаточный верхний захват", hip)
+        self.assertIn("Недостаточный латеральный захват", hip)
+
     def test_spine_positioning_bad_hides_iliac_landmarks(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -214,11 +252,12 @@ class ViewerAdapterTests(unittest.TestCase):
             self.assertEqual(["0.125000", "0.875000"], [row["time_of_processing"] for row in values])
 
     def test_xlsx_export_is_a_valid_office_archive(self):
-        content = workbook_bytes([{"image_uid": "1&2", "quality_class": "1", "time_of_processing": "0.25"}], server.FIELDS)
+        content = workbook_bytes([{"image_uid": "1&2", "quality_class": "1", "violation_description": "Недостаточный верхний захват", "time_of_processing": "0.25"}], server.FIELDS)
         with zipfile.ZipFile(io.BytesIO(content)) as archive:
             self.assertEqual("PK", content[:2].decode())
             sheet = archive.read("xl/worksheets/sheet1.xml").decode()
             self.assertIn("1&amp;2", sheet)
+            self.assertIn("Недостаточный верхний захват", sheet)
             self.assertIn("<v>0.25</v>", sheet)
 
     def test_ui_has_blocking_processing_status(self):
@@ -234,6 +273,8 @@ class ViewerAdapterTests(unittest.TestCase):
         self.assertIn('id="explain"', html)
         self.assertIn("Объяснение", html)
         self.assertIn("drawExplanationOverlay", script)
+        self.assertIn("Описание нарушения", html)
+        self.assertIn("card-reason", script)
         self.assertIn("hip_lateral_margin_mm", script)
         self.assertIn("spine_axis_angle_deg", script)
 
@@ -242,6 +283,7 @@ class ViewerAdapterTests(unittest.TestCase):
         script = (server.STATIC / "app.js").read_text()
         self.assertIn('id="gradcam"', html)
         self.assertIn("Тепловая карта артефактов", html)
+        self.assertNotIn("Grad-CAM: артефакты", script)
         self.assertIn("loadGradcam", script)
         self.assertIn("drawGradcam", script)
 
