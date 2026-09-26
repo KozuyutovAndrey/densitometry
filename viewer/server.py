@@ -88,13 +88,31 @@ def landmark_point(point_row, key):
     return {"x": x, "y": y}
 
 
+def hip_landmark_order_is_bad(point_row, region):
+    greater_top = landmark_point(point_row, "hip_greater_trochanter_top_edge")
+    greater_lateral = landmark_point(point_row, "hip_greater_trochanter_lateral_edge")
+    lesser_upper = landmark_point(point_row, "hip_lesser_trochanter_upper")
+    lesser_lower = landmark_point(point_row, "hip_lesser_trochanter_lower")
+    if not all([greater_top, greater_lateral, lesser_upper, lesser_lower]):
+        return False
+
+    vertical_ok = greater_top["y"] < greater_lateral["y"] < lesser_upper["y"]
+    if region == "right_hip":
+        horizontal_ok = greater_lateral["x"] < greater_top["x"] < lesser_lower["x"]
+    elif region == "left_hip":
+        horizontal_ok = greater_lateral["x"] > greater_top["x"] > lesser_lower["x"]
+    else:
+        horizontal_ok = True
+    return not (vertical_ok and horizontal_ok)
+
+
 def hip_positioning_is_bad(point_row, region):
     required = [
         landmark_point(point_row, "hip_greater_trochanter_top_edge"),
         landmark_point(point_row, "hip_greater_trochanter_lateral_edge"),
         landmark_point(point_row, "hip_ischium_edge"),
     ]
-    return not all(required)
+    return not all(required) or hip_landmark_order_is_bad(point_row, region)
 
 
 def violation_description(row, detail, point_row):

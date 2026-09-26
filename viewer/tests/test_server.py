@@ -81,7 +81,7 @@ class ViewerAdapterTests(unittest.TestCase):
             },
             hip_points,
         )
-        self.assertNotIn("Некорректное позиционирование", hip)
+        self.assertIn("Некорректное позиционирование", hip)
         self.assertIn("Ротация бедра (недостаточная)", hip)
         self.assertIn("Недостаточный верхний захват", hip)
         self.assertIn("Недостаточный латеральный захват", hip)
