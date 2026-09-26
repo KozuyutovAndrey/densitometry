@@ -5,11 +5,14 @@ import tempfile
 import unittest
 import zipfile
 import struct
+import sys
 from pathlib import Path
 from unittest.mock import patch
 
 from viewer import gradcam, reconstruct, server
 from viewer.xlsx_export import workbook_bytes
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
+from scripts import predict_landmarks_heatmap as heatmap_landmarks
 from scripts.run_full_inference import export_submission
 from scripts.prepare_artifacts import is_dicom_member
 
@@ -79,6 +82,27 @@ class ViewerAdapterTests(unittest.TestCase):
         self.assertIn("Ротация бедра (недостаточная)", hip)
         self.assertIn("Недостаточный верхний захват", hip)
         self.assertIn("Недостаточный латеральный захват", hip)
+
+    def test_hip_lesser_lower_respects_laterality_anchor(self):
+        right_points = {
+            "hip_greater_trochanter_top_edge": (30.0, 10.0),
+            "hip_lesser_trochanter_lower": (20.0, 50.0),
+        }
+        heatmap_landmarks.enforce_hip_side_order(right_points, "right_hip")
+        self.assertGreaterEqual(
+            right_points["hip_lesser_trochanter_lower"][0],
+            right_points["hip_greater_trochanter_top_edge"][0],
+        )
+
+        left_points = {
+            "hip_greater_trochanter_top_edge": (30.0, 10.0),
+            "hip_lesser_trochanter_lower": (45.0, 50.0),
+        }
+        heatmap_landmarks.enforce_hip_side_order(left_points, "left_hip")
+        self.assertLessEqual(
+            left_points["hip_lesser_trochanter_lower"][0],
+            left_points["hip_greater_trochanter_top_edge"][0],
+        )
 
     def test_spine_positioning_bad_hides_iliac_landmarks(self):
         with tempfile.TemporaryDirectory() as directory:

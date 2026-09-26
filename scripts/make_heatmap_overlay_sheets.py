@@ -169,7 +169,7 @@ def build_val_sheets(args: argparse.Namespace) -> None:
             continue
         image = Image.open(args.dataset_dir / ann["image_path"])
         gt_points = gt_points_from_annotation(ann)
-        pred_points = predict_image(image, bundle, device)
+        pred_points = predict_image(image, bundle, device, region)
         mean_error = mean_point_error_mm(gt_points, pred_points)
         title = (
             f"heatmap val pilot={ann['pilot_id']} img={ann['image_number']} "
