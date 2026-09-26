@@ -153,13 +153,7 @@ def hip_positioning_order_bad(row: dict[str, str], anatomical_region: str) -> bo
         return False
 
     vertical_ok = greater_top[1] < greater_lateral[1] < lesser_upper[1]
-    if anatomical_region == "right_hip":
-        horizontal_ok = greater_lateral[0] < greater_top[0] < lesser_lower[0]
-    elif anatomical_region == "left_hip":
-        horizontal_ok = greater_lateral[0] > greater_top[0] > lesser_lower[0]
-    else:
-        horizontal_ok = True
-    return not (vertical_ok and horizontal_ok)
+    return not vertical_ok
 
 
 def fmt(value: Any) -> str:

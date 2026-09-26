@@ -86,6 +86,36 @@ class ViewerAdapterTests(unittest.TestCase):
         self.assertIn("Недостаточный верхний захват", hip)
         self.assertIn("Недостаточный латеральный захват", hip)
 
+    def test_hip_horizontal_landmark_order_alone_does_not_mark_quality_bad(self):
+        inference_row = {
+            "anatomical_region": "right_hip",
+            "columns": "280",
+            "rows": "318",
+        }
+        landmarks = {
+            "hip_greater_trochanter_top_edge_visible": "1",
+            "hip_greater_trochanter_top_edge_x": "123",
+            "hip_greater_trochanter_top_edge_y": "74",
+            "hip_greater_trochanter_lateral_edge_visible": "1",
+            "hip_greater_trochanter_lateral_edge_x": "92",
+            "hip_greater_trochanter_lateral_edge_y": "127",
+            "hip_lesser_trochanter_upper_visible": "1",
+            "hip_lesser_trochanter_upper_x": "130",
+            "hip_lesser_trochanter_upper_y": "238",
+            "hip_lesser_trochanter_tip_visible": "1",
+            "hip_lesser_trochanter_tip_x": "124",
+            "hip_lesser_trochanter_tip_y": "254",
+            "hip_lesser_trochanter_lower_visible": "1",
+            "hip_lesser_trochanter_lower_x": "115",
+            "hip_lesser_trochanter_lower_y": "273",
+            "hip_ischium_edge_visible": "1",
+            "hip_ischium_edge_x": "242",
+            "hip_ischium_edge_y": "186",
+        }
+        quality = quality_rules.evaluate_canonical(inference_row, landmarks, "test")
+        self.assertEqual(0, quality["hip_positioning_order_bad"])
+        self.assertEqual(0, quality["quality_class"])
+
     def test_hip_lesser_lower_near_bottom_marks_roi_bad(self):
         inference_row = {
             "anatomical_region": "right_hip",
@@ -116,7 +146,7 @@ class ViewerAdapterTests(unittest.TestCase):
         self.assertIn("hip_roi", quality["violation_type"])
         self.assertLess(float(quality["hip_lesser_lower_bottom_margin_mm"]), 30.0)
 
-    def test_hip_landmark_order_marks_quality_bad(self):
+    def test_hip_vertical_landmark_order_marks_quality_bad(self):
         inference_row = {
             "anatomical_region": "right_hip",
             "columns": "300",
@@ -125,10 +155,10 @@ class ViewerAdapterTests(unittest.TestCase):
         landmarks = {
             "hip_greater_trochanter_top_edge_visible": "1",
             "hip_greater_trochanter_top_edge_x": "100",
-            "hip_greater_trochanter_top_edge_y": "60",
+            "hip_greater_trochanter_top_edge_y": "100",
             "hip_greater_trochanter_lateral_edge_visible": "1",
             "hip_greater_trochanter_lateral_edge_x": "80",
-            "hip_greater_trochanter_lateral_edge_y": "90",
+            "hip_greater_trochanter_lateral_edge_y": "80",
             "hip_lesser_trochanter_upper_visible": "1",
             "hip_lesser_trochanter_upper_x": "120",
             "hip_lesser_trochanter_upper_y": "120",

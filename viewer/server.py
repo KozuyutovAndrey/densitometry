@@ -98,13 +98,7 @@ def hip_landmark_order_is_bad(point_row, region):
         return False
 
     vertical_ok = greater_top["y"] < greater_lateral["y"] < lesser_upper["y"]
-    if region == "right_hip":
-        horizontal_ok = greater_lateral["x"] < greater_top["x"] < lesser_lower["x"]
-    elif region == "left_hip":
-        horizontal_ok = greater_lateral["x"] > greater_top["x"] > lesser_lower["x"]
-    else:
-        horizontal_ok = True
-    return not (vertical_ok and horizontal_ok)
+    return not vertical_ok
 
 
 def hip_positioning_is_bad(point_row, region):
