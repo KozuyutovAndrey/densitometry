@@ -72,6 +72,7 @@ HIP_LESSER_PROMINENCE_HIGH_THRESHOLD_MM = 6.346
 HIP_ROI_TOP_THRESHOLD_MM = 30.0
 HIP_ROI_LATERAL_THRESHOLD_MM = 20.0
 HIP_ROI_BOTTOM_THRESHOLD_MM = 30.0
+HIP_ROI_LESSER_LOWER_BOTTOM_THRESHOLD_MM = 30.0
 
 
 def violation_codes(row):
@@ -143,9 +144,10 @@ def violation_description(row, detail, point_row):
         top = number(detail.get("hip_top_margin_mm"))
         lateral = number(detail.get("hip_lateral_margin_mm"))
         bottom = number(detail.get("hip_bottom_margin_mm"))
+        lesser_lower_bottom = number(detail.get("hip_lesser_lower_bottom_margin_mm"))
         if top is None or top < HIP_ROI_TOP_THRESHOLD_MM:
             descriptions.append("Недостаточный верхний захват")
-        if bottom is None or bottom < HIP_ROI_BOTTOM_THRESHOLD_MM:
+        if (bottom is None or bottom < HIP_ROI_BOTTOM_THRESHOLD_MM or (lesser_lower_bottom is not None and lesser_lower_bottom < HIP_ROI_LESSER_LOWER_BOTTOM_THRESHOLD_MM)):
             descriptions.append("Недостаточный нижний захват")
         if lateral is None or lateral < HIP_ROI_LATERAL_THRESHOLD_MM:
             descriptions.append("Недостаточный латеральный захват")
@@ -180,7 +182,7 @@ def results(submission, work):
                        "width": number(skeleton.get(member, {}).get("columns")),
                        "height": number(skeleton.get(member, {}).get("rows")),
                        "landmarks": points, "landmark_model": point_row.get("landmark_model", ""),
-                       "metrics": {k: number(detail.get(k)) for k in ["spine_axis_angle_deg", "hip_lesser_prominence_mm", "hip_top_margin_mm", "hip_bottom_margin_mm", "hip_lateral_margin_mm"]}})
+                       "metrics": {k: number(detail.get(k)) for k in ["spine_axis_angle_deg", "hip_lesser_prominence_mm", "hip_top_margin_mm", "hip_bottom_margin_mm", "hip_lateral_margin_mm", "hip_lesser_lower_bottom_margin_mm"]}})
     return output
 
 

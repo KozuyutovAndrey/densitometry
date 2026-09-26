@@ -237,6 +237,7 @@ function renderFindings() {
     spine_axis_angle_deg: ["Наклон оси", "°"], hip_lesser_prominence_mm: ["Выступание малого вертела", " мм"],
     hip_top_margin_mm: ["Верхний отступ", " мм"], hip_bottom_margin_mm: ["Нижний отступ", " мм"],
     hip_lateral_margin_mm: ["Боковой отступ", " мм"],
+    hip_lesser_lower_bottom_margin_mm: ["Нижний отступ малого вертела", " мм"],
   };
   let count = 0;
   for (const [key, value] of Object.entries(image.metrics || {})) {

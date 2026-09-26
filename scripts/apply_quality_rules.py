@@ -22,6 +22,7 @@ HIP_LESSER_PROMINENCE_HIGH_THRESHOLD_MM = 6.346
 HIP_ROI_TOP_THRESHOLD_MM = 30.000
 HIP_ROI_LATERAL_THRESHOLD_MM = 20.000
 HIP_ROI_BOTTOM_THRESHOLD_MM = 30.000
+HIP_ROI_LESSER_LOWER_BOTTOM_THRESHOLD_MM = 30.000
 
 SPINE_CENTER_KEYS = [
     "spine_th12_center",
@@ -121,6 +122,7 @@ def hip_metrics(row: dict[str, str], anatomical_region: str, columns: float, row
         "hip_top_margin_mm": "",
         "hip_lateral_margin_mm": "",
         "hip_bottom_margin_mm": "",
+        "hip_lesser_lower_bottom_margin_mm": "",
     }
     if upper is not None and tip is not None and lower is not None:
         prominence = point_line_distance(to_mm(tip), to_mm(upper), to_mm(lower))
@@ -137,6 +139,8 @@ def hip_metrics(row: dict[str, str], anatomical_region: str, columns: float, row
         out["hip_lateral_margin_mm"] = lateral_px * PIXEL_SPACING_X_MM
     if ischium is not None:
         out["hip_bottom_margin_mm"] = max(rows - ischium[1], 0) * PIXEL_SPACING_Y_MM
+    if lower is not None:
+        out["hip_lesser_lower_bottom_margin_mm"] = max(rows - lower[1], 0) * PIXEL_SPACING_Y_MM
     return out
 
 
@@ -214,6 +218,7 @@ def evaluate_canonical(
         top = metrics["hip_top_margin_mm"]
         lateral = metrics["hip_lateral_margin_mm"]
         bottom = metrics["hip_bottom_margin_mm"]
+        lesser_lower_bottom = metrics["hip_lesser_lower_bottom_margin_mm"]
         structure_missing = top == "" or lateral == "" or bottom == ""
         positioning_order_bad = bool(metrics["hip_positioning_order_bad"])
         rotation_bad = (
@@ -228,6 +233,7 @@ def evaluate_canonical(
             or float(top) < HIP_ROI_TOP_THRESHOLD_MM
             or float(lateral) < HIP_ROI_LATERAL_THRESHOLD_MM
             or float(bottom) < HIP_ROI_BOTTOM_THRESHOLD_MM
+            or (lesser_lower_bottom != "" and float(lesser_lower_bottom) < HIP_ROI_LESSER_LOWER_BOTTOM_THRESHOLD_MM)
         )
         if structure_missing or positioning_order_bad or rotation_bad:
             violations.append("hip_positioning_rotation")
@@ -309,6 +315,7 @@ def build_quality_rows(
                 "hip_top_margin_mm": fmt(quality.get("hip_top_margin_mm", "")),
                 "hip_lateral_margin_mm": fmt(quality.get("hip_lateral_margin_mm", "")),
                 "hip_bottom_margin_mm": fmt(quality.get("hip_bottom_margin_mm", "")),
+                "hip_lesser_lower_bottom_margin_mm": fmt(quality.get("hip_lesser_lower_bottom_margin_mm", "")),
             }
         )
     return out_rows
@@ -358,6 +365,7 @@ def main() -> None:
         "hip_top_margin_mm",
         "hip_lateral_margin_mm",
         "hip_bottom_margin_mm",
+        "hip_lesser_lower_bottom_margin_mm",
     ]
     write_csv(args.out_csv, rows, fieldnames)
     print(f"Rows: {len(rows)}")

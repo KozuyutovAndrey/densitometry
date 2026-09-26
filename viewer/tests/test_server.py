@@ -86,6 +86,36 @@ class ViewerAdapterTests(unittest.TestCase):
         self.assertIn("Недостаточный верхний захват", hip)
         self.assertIn("Недостаточный латеральный захват", hip)
 
+    def test_hip_lesser_lower_near_bottom_marks_roi_bad(self):
+        inference_row = {
+            "anatomical_region": "right_hip",
+            "columns": "280",
+            "rows": "206",
+        }
+        landmarks = {
+            "hip_greater_trochanter_top_edge_visible": "1",
+            "hip_greater_trochanter_top_edge_x": "113",
+            "hip_greater_trochanter_top_edge_y": "74",
+            "hip_greater_trochanter_lateral_edge_visible": "1",
+            "hip_greater_trochanter_lateral_edge_x": "84",
+            "hip_greater_trochanter_lateral_edge_y": "121",
+            "hip_lesser_trochanter_upper_visible": "1",
+            "hip_lesser_trochanter_upper_x": "162",
+            "hip_lesser_trochanter_upper_y": "170",
+            "hip_lesser_trochanter_tip_visible": "1",
+            "hip_lesser_trochanter_tip_x": "165",
+            "hip_lesser_trochanter_tip_y": "189",
+            "hip_lesser_trochanter_lower_visible": "1",
+            "hip_lesser_trochanter_lower_x": "148",
+            "hip_lesser_trochanter_lower_y": "203",
+            "hip_ischium_edge_visible": "1",
+            "hip_ischium_edge_x": "180",
+            "hip_ischium_edge_y": "158",
+        }
+        quality = quality_rules.evaluate_canonical(inference_row, landmarks, "test")
+        self.assertIn("hip_roi", quality["violation_type"])
+        self.assertLess(float(quality["hip_lesser_lower_bottom_margin_mm"]), 30.0)
+
     def test_hip_landmark_order_marks_quality_bad(self):
         inference_row = {
             "anatomical_region": "right_hip",
