@@ -241,8 +241,7 @@ class ViewerAdapterTests(unittest.TestCase):
         html = (server.STATIC / "index.html").read_text()
         script = (server.STATIC / "app.js").read_text()
         self.assertIn('id="gradcam"', html)
-        self.assertIn('id="gradcam-task"', html)
-        self.assertIn("Тепловая карта CNN", html)
+        self.assertIn("Тепловая карта артефактов", html)
         self.assertIn("loadGradcam", script)
         self.assertIn("drawGradcam", script)
 
