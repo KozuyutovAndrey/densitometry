@@ -23,13 +23,10 @@ DEFAULT_SPINE_MODEL = ROOT / "artifacts" / "landmark_heatmap" / "spine" / "best.
 DEFAULT_OUT_CSV = ROOT / "artifacts" / "inference_landmark_predictions_heatmap.csv"
 
 ALL_KEYS = SPINE_KEYS + HIP_KEYS
-GREATER_TOP_KEY = "hip_greater_trochanter_top_edge"
-LESSER_LOWER_KEY = "hip_lesser_trochanter_lower"
-HIP_SIDE_ORDER_MIN_GAP_PX = 4.0
 LESSER_KEYS = [
     "hip_lesser_trochanter_upper",
     "hip_lesser_trochanter_tip",
-    LESSER_LOWER_KEY,
+    "hip_lesser_trochanter_lower",
 ]
 
 
@@ -82,35 +79,7 @@ def distinct_topk_points(heatmap: torch.Tensor, k: int = 12, min_distance: float
     return points
 
 
-def lower_side_violation(region: str, lower_x: float, greater_top_x: float | None) -> float:
-    if greater_top_x is None:
-        return 0.0
-    if region == "right_hip":
-        return max(0.0, greater_top_x + HIP_SIDE_ORDER_MIN_GAP_PX - lower_x)
-    if region == "left_hip":
-        return max(0.0, lower_x - (greater_top_x - HIP_SIDE_ORDER_MIN_GAP_PX))
-    return 0.0
-
-
-def enforce_hip_side_order(points: dict[str, tuple[float, float]], region: str) -> None:
-    greater_top = points.get(GREATER_TOP_KEY)
-    lower = points.get(LESSER_LOWER_KEY)
-    if greater_top is None or lower is None:
-        return
-    greater_top_x, _greater_top_y = greater_top
-    lower_x, lower_y = lower
-    if region == "right_hip" and lower_x < greater_top_x + HIP_SIDE_ORDER_MIN_GAP_PX:
-        points[LESSER_LOWER_KEY] = (greater_top_x + HIP_SIDE_ORDER_MIN_GAP_PX, lower_y)
-    elif region == "left_hip" and lower_x > greater_top_x - HIP_SIDE_ORDER_MIN_GAP_PX:
-        points[LESSER_LOWER_KEY] = (greater_top_x - HIP_SIDE_ORDER_MIN_GAP_PX, lower_y)
-
-
-def constrained_lesser_points(
-    probs: torch.Tensor,
-    keys: list[str],
-    region: str = "",
-    greater_top_x: float | None = None,
-) -> dict[str, tuple[float, float]]:
+def constrained_lesser_points(probs: torch.Tensor, keys: list[str]) -> dict[str, tuple[float, float]]:
     key_to_channel = {key: i for i, key in enumerate(keys)}
     if not all(key in key_to_channel for key in LESSER_KEYS):
         return {}
@@ -154,7 +123,6 @@ def constrained_lesser_points(
                     + max(0.0, base_len - 62.0)
                 )
                 balance_penalty = abs(upper_tip_dy - tip_lower_dy)
-                side_order_penalty = lower_side_violation(region, lower_x, greater_top_x)
                 score = (
                     log_score
                     - 1.5 * order_penalty
@@ -162,7 +130,6 @@ def constrained_lesser_points(
                     - 0.8 * gap_penalty
                     - 1.2 * distance_penalty
                     - 0.08 * balance_penalty
-                    - 4.0 * side_order_penalty
                 )
 
                 if score > best_score:
@@ -209,11 +176,8 @@ def predict_image(
     for key, (x, y) in zip(bundle["keys"], points, strict=True):
         out[key] = (float(x) / denom * image.width, float(y) / denom * image.height)
     if bundle["region"] == "hip":
-        greater_top = points[bundle["keys"].index(GREATER_TOP_KEY)] if GREATER_TOP_KEY in bundle["keys"] else None
-        greater_top_x = float(greater_top[0]) if greater_top is not None else None
-        for key, (x, y) in constrained_lesser_points(probs, bundle["keys"], anatomical_region, greater_top_x).items():
+        for key, (x, y) in constrained_lesser_points(probs, bundle["keys"]).items():
             out[key] = (x / denom * image.width, y / denom * image.height)
-        enforce_hip_side_order(out, anatomical_region)
     return out
 
 

@@ -13,7 +13,6 @@ from viewer import gradcam, reconstruct, server
 from viewer.xlsx_export import workbook_bytes
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
 from scripts import apply_quality_rules as quality_rules
-from scripts import predict_landmarks_heatmap as heatmap_landmarks
 from scripts.run_full_inference import export_submission
 from scripts.prepare_artifacts import is_dicom_member
 
@@ -68,6 +67,9 @@ class ViewerAdapterTests(unittest.TestCase):
             "hip_lesser_trochanter_lower_visible": "1",
             "hip_lesser_trochanter_lower_x": "160",
             "hip_lesser_trochanter_lower_y": "120",
+            "hip_ischium_edge_visible": "1",
+            "hip_ischium_edge_x": "150",
+            "hip_ischium_edge_y": "360",
         }
         hip = server.violation_description(
             {"anatomical_region": "right_hip", "violation_type": "hip_positioning_rotation;hip_roi"},
@@ -79,12 +81,12 @@ class ViewerAdapterTests(unittest.TestCase):
             },
             hip_points,
         )
-        self.assertIn("Некорректное позиционирование", hip)
+        self.assertNotIn("Некорректное позиционирование", hip)
         self.assertIn("Ротация бедра (недостаточная)", hip)
         self.assertIn("Недостаточный верхний захват", hip)
         self.assertIn("Недостаточный латеральный захват", hip)
 
-    def test_hip_positioning_order_marks_quality_bad(self):
+    def test_hip_lesser_lower_x_order_alone_does_not_mark_quality_bad(self):
         inference_row = {
             "anatomical_region": "right_hip",
             "columns": "300",
@@ -111,30 +113,8 @@ class ViewerAdapterTests(unittest.TestCase):
             "hip_ischium_edge_y": "360",
         }
         quality = quality_rules.evaluate_canonical(inference_row, landmarks, "test")
-        self.assertEqual(1, quality["quality_class"])
-        self.assertIn("hip_positioning_rotation", quality["violation_type"])
-        self.assertEqual(1, quality["hip_positioning_order_bad"])
-
-    def test_hip_lesser_lower_respects_laterality_anchor(self):
-        right_points = {
-            "hip_greater_trochanter_top_edge": (30.0, 10.0),
-            "hip_lesser_trochanter_lower": (20.0, 50.0),
-        }
-        heatmap_landmarks.enforce_hip_side_order(right_points, "right_hip")
-        self.assertGreater(
-            right_points["hip_lesser_trochanter_lower"][0],
-            right_points["hip_greater_trochanter_top_edge"][0],
-        )
-
-        left_points = {
-            "hip_greater_trochanter_top_edge": (30.0, 10.0),
-            "hip_lesser_trochanter_lower": (45.0, 50.0),
-        }
-        heatmap_landmarks.enforce_hip_side_order(left_points, "left_hip")
-        self.assertLess(
-            left_points["hip_lesser_trochanter_lower"][0],
-            left_points["hip_greater_trochanter_top_edge"][0],
-        )
+        self.assertEqual(0, quality["quality_class"])
+        self.assertEqual("", quality["violation_type"])
 
     def test_spine_positioning_bad_hides_iliac_landmarks(self):
         with tempfile.TemporaryDirectory() as directory:
