@@ -12,6 +12,7 @@ from unittest.mock import patch
 from viewer import gradcam, reconstruct, server
 from viewer.xlsx_export import workbook_bytes
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
+from scripts import apply_quality_rules as quality_rules
 from scripts import predict_landmarks_heatmap as heatmap_landmarks
 from scripts.run_full_inference import export_submission
 from scripts.prepare_artifacts import is_dicom_member
@@ -82,6 +83,37 @@ class ViewerAdapterTests(unittest.TestCase):
         self.assertIn("Ротация бедра (недостаточная)", hip)
         self.assertIn("Недостаточный верхний захват", hip)
         self.assertIn("Недостаточный латеральный захват", hip)
+
+    def test_hip_positioning_order_marks_quality_bad(self):
+        inference_row = {
+            "anatomical_region": "right_hip",
+            "columns": "300",
+            "rows": "400",
+        }
+        landmarks = {
+            "hip_greater_trochanter_top_edge_visible": "1",
+            "hip_greater_trochanter_top_edge_x": "100",
+            "hip_greater_trochanter_top_edge_y": "60",
+            "hip_greater_trochanter_lateral_edge_visible": "1",
+            "hip_greater_trochanter_lateral_edge_x": "80",
+            "hip_greater_trochanter_lateral_edge_y": "90",
+            "hip_lesser_trochanter_upper_visible": "1",
+            "hip_lesser_trochanter_upper_x": "120",
+            "hip_lesser_trochanter_upper_y": "120",
+            "hip_lesser_trochanter_tip_visible": "1",
+            "hip_lesser_trochanter_tip_x": "113",
+            "hip_lesser_trochanter_tip_y": "140",
+            "hip_lesser_trochanter_lower_visible": "1",
+            "hip_lesser_trochanter_lower_x": "90",
+            "hip_lesser_trochanter_lower_y": "170",
+            "hip_ischium_edge_visible": "1",
+            "hip_ischium_edge_x": "150",
+            "hip_ischium_edge_y": "360",
+        }
+        quality = quality_rules.evaluate_canonical(inference_row, landmarks, "test")
+        self.assertEqual(1, quality["quality_class"])
+        self.assertIn("hip_positioning_rotation", quality["violation_type"])
+        self.assertEqual(1, quality["hip_positioning_order_bad"])
 
     def test_hip_lesser_lower_respects_laterality_anchor(self):
         right_points = {
