@@ -10,22 +10,28 @@
     "spine_left_iliac_crest",
     "spine_right_iliac_crest"
   ],
-  "train_rows": 79,
-  "val_rows": 20,
+  "train_rows": 99,
+  "val_rows": 99,
   "image_size": 256,
   "epochs": 80,
+  "train_all": true,
+  "geometry_loss_weight": 0.0,
+  "geometry_loss_start_epoch": 0,
+  "original_train_rows": 79,
+  "original_val_rows": 20,
   "best_metrics": {
-    "mean_error_mm": 58.96626529340378,
-    "median_error_mm": 52.74777640154442,
-    "p90_error_mm": 133.49214227585662,
-    "n_points": 153.0,
-    "spine_th12_center_mean_error_mm": 44.34929873430845,
-    "spine_l1_center_mean_error_mm": 37.65633145348988,
-    "spine_l2_center_mean_error_mm": 59.985933857958614,
-    "spine_l3_center_mean_error_mm": 34.27501498163223,
-    "spine_l4_center_mean_error_mm": 43.8883152758253,
-    "spine_l5_center_mean_error_mm": 78.53024543048578,
-    "spine_left_iliac_crest_mean_error_mm": 40.88939753348752,
-    "spine_right_iliac_crest_mean_error_mm": 131.3917703659407
-  }
+    "mean_error_mm": 16.35849545566442,
+    "median_error_mm": 2.052523518671806,
+    "p90_error_mm": 56.12617607900904,
+    "n_points": 759.0,
+    "spine_th12_center_mean_error_mm": 18.377115413749344,
+    "spine_l1_center_mean_error_mm": 15.170010935208046,
+    "spine_l2_center_mean_error_mm": 26.80369610816783,
+    "spine_l3_center_mean_error_mm": 36.041613267726774,
+    "spine_l4_center_mean_error_mm": 12.569330769141455,
+    "spine_l5_center_mean_error_mm": 10.165219046241164,
+    "spine_left_iliac_crest_mean_error_mm": 5.879302970956702,
+    "spine_right_iliac_crest_mean_error_mm": 5.056371633402157
+  },
+  "notes": "Final train-all model; metrics are in-sample sanity checks, not holdout validation."
 }

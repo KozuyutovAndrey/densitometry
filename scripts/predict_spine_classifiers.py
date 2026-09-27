@@ -21,6 +21,12 @@ DEFAULT_DICOM_INPUT = ROOT / "data" / "Для теста.zip"
 DEFAULT_POSITIONING_MODEL = ROOT / "artifacts" / "spine_classifiers" / "positioning" / "best.pt"
 DEFAULT_ARTIFACT_MODEL = ROOT / "artifacts" / "spine_classifiers" / "artifact" / "best.pt"
 DEFAULT_OUT_CSV = ROOT / "artifacts" / "inference_spine_classifier_predictions.csv"
+VALIDATED_SPINE_POSITIONING_THRESHOLD = 0.7809473276138306
+VALIDATED_SPINE_ARTIFACT_THRESHOLD = 0.38129135966300964
+VALIDATED_THRESHOLDS = {
+    "positioning": VALIDATED_SPINE_POSITIONING_THRESHOLD,
+    "artifact": VALIDATED_SPINE_ARTIFACT_THRESHOLD,
+}
 
 
 def read_csv(path: Path) -> list[dict[str, str]]:
@@ -49,7 +55,7 @@ def image_tensor(image: Image.Image, image_size: int, device: torch.device) -> t
     return torch.from_numpy(arr[None, None, :, :].astype(np.float32)).to(device)
 
 
-def load_classifier(path: Path, device: torch.device) -> dict[str, Any] | None:
+def load_classifier(path: Path, device: torch.device, threshold_override: float | None = None) -> dict[str, Any] | None:
     if not path.exists():
         return None
     checkpoint = torch.load(path, map_location=device, weights_only=False)
@@ -60,7 +66,12 @@ def load_classifier(path: Path, device: torch.device) -> dict[str, Any] | None:
     model.to(device)
     model.eval()
     report = checkpoint.get("report", {})
-    threshold = float(report.get("threshold", 0.5))
+    task = str(checkpoint.get("task", ""))
+    threshold = (
+        float(threshold_override)
+        if threshold_override is not None
+        else float(VALIDATED_THRESHOLDS.get(task, report.get("threshold", 0.5)))
+    )
     return {
         "path": path,
         "model": model,
@@ -137,6 +148,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--positioning-model", type=Path, default=DEFAULT_POSITIONING_MODEL)
     parser.add_argument("--artifact-model", type=Path, default=DEFAULT_ARTIFACT_MODEL)
     parser.add_argument("--out-csv", type=Path, default=DEFAULT_OUT_CSV)
+    parser.add_argument("--positioning-threshold", type=float, default=VALIDATED_SPINE_POSITIONING_THRESHOLD)
+    parser.add_argument("--artifact-threshold", type=float, default=VALIDATED_SPINE_ARTIFACT_THRESHOLD)
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     return parser.parse_args()
 
@@ -144,8 +157,8 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     device = torch.device(args.device)
-    positioning_bundle = load_classifier(args.positioning_model, device)
-    artifact_bundle = load_classifier(args.artifact_model, device)
+    positioning_bundle = load_classifier(args.positioning_model, device, threshold_override=args.positioning_threshold)
+    artifact_bundle = load_classifier(args.artifact_model, device, threshold_override=args.artifact_threshold)
     rows = []
     for row in read_csv(args.input_csv):
         if device.type == "cuda":

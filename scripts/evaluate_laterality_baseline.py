@@ -114,9 +114,14 @@ def evaluate(
     size: int,
     val_fraction: float,
     seed: int,
+    train_all: bool,
 ) -> None:
     rows = canonical_hip_rows(read_csv(review_csv))
-    split_by_uid = split_by_study(rows, val_fraction=val_fraction, seed=seed)
+    split_by_uid = (
+        {row["study_folder"]: "train" for row in rows}
+        if train_all
+        else split_by_study(rows, val_fraction=val_fraction, seed=seed)
+    )
     vectors = load_vectors(rows, train_zip, size=size)
     templates = train_templates(rows, vectors, split_by_uid)
 
@@ -182,6 +187,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--size", type=int, default=96)
     parser.add_argument("--val-fraction", type=float, default=0.2)
     parser.add_argument("--seed", type=int, default=2026)
+    parser.add_argument("--train-all", action="store_true", help="Build left/right hip templates from all canonical hip rows.")
     return parser.parse_args()
 
 
@@ -196,6 +202,7 @@ def main() -> None:
         size=args.size,
         val_fraction=args.val_fraction,
         seed=args.seed,
+        train_all=args.train_all,
     )
 
 

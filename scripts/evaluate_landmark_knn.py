@@ -242,8 +242,16 @@ def build_report(eval_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return report
 
 
-def save_model(rows: list[dict[str, str]], vectors: dict[str, np.ndarray], model_npz: Path, model_json: Path, size: int, k: int) -> None:
-    train_rows = [row for row in rows if row["split"] == "train"]
+def save_model(
+    rows: list[dict[str, str]],
+    vectors: dict[str, np.ndarray],
+    model_npz: Path,
+    model_json: Path,
+    size: int,
+    k: int,
+    train_all: bool,
+) -> None:
+    train_rows = rows if train_all else [row for row in rows if row["split"] == "train"]
     pilot_ids = [row["pilot_id"] for row in train_rows]
     matrix = np.stack([vectors[pilot_id] for pilot_id in pilot_ids], axis=0)
     model_npz.parent.mkdir(parents=True, exist_ok=True)
@@ -252,6 +260,7 @@ def save_model(rows: list[dict[str, str]], vectors: dict[str, np.ndarray], model
         "model_type": "nearest_neighbor_landmarks",
         "image_size": size,
         "k": k,
+        "train_all": train_all,
         "pixel_spacing_x_mm": PIXEL_SPACING_X_MM,
         "pixel_spacing_y_mm": PIXEL_SPACING_Y_MM,
         "rows": train_rows,
@@ -269,6 +278,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model-json", type=Path, default=DEFAULT_MODEL_JSON)
     parser.add_argument("--size", type=int, default=96)
     parser.add_argument("--k", type=int, default=5)
+    parser.add_argument("--train-all", action="store_true", help="Save train+val rows into the final kNN landmark model.")
     return parser.parse_args()
 
 
@@ -293,7 +303,7 @@ def main() -> None:
             "p90_error_mm",
         ],
     )
-    save_model(rows, vectors, args.model_npz, args.model_json, args.size, args.k)
+    save_model(rows, vectors, args.model_npz, args.model_json, args.size, args.k, args.train_all)
     print(f"Rows: {len(rows)}")
     print(f"Eval rows: {len(eval_rows)}")
     for row in report:
@@ -306,6 +316,8 @@ def main() -> None:
     print(f"Wrote: {args.report_csv}")
     print(f"Wrote: {args.model_npz}")
     print(f"Wrote: {args.model_json}")
+    if args.train_all:
+        print("Saved kNN model with previous train+val rows.")
 
 
 if __name__ == "__main__":

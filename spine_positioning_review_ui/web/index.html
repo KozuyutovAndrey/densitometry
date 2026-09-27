@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Проверка подвздошных костей</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <main class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="eyebrow">Spine Positioning Review</div>
+        <h1>Подвздошные кости</h1>
+      </div>
+      <section class="stats" id="stats"></section>
+      <section class="filters">
+        <button class="filter active" data-filter="all">Все</button>
+        <button class="filter" data-filter="unreviewed">Не проверено</button>
+        <button class="filter" data-filter="changed">Исправлены</button>
+        <button class="filter" data-filter="real">Оригиналы</button>
+        <button class="filter" data-filter="synthetic">Синтетика</button>
+        <button class="filter" data-filter="visible">Видны</button>
+        <button class="filter" data-filter="missing">Не видны</button>
+        <button class="filter" data-filter="training">В обучение</button>
+        <button class="filter" data-filter="excluded">Не использовать</button>
+      </section>
+      <div class="search-row">
+        <input id="search" placeholder="Номер, study, файл" />
+      </div>
+      <section class="list" id="list"></section>
+    </aside>
+
+    <section class="workspace">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow" id="counter">Снимок</div>
+          <h2 id="title">Загрузка...</h2>
+        </div>
+        <div class="nav-actions">
+          <button id="prevBtn" title="Предыдущий">←</button>
+          <button id="nextBtn" title="Следующий">→</button>
+        </div>
+      </header>
+
+      <section class="image-panel">
+        <img id="image" alt="DXA spine" />
+      </section>
+
+      <section class="review-panel">
+        <div class="meta" id="meta"></div>
+        <div class="decision">
+          <button class="decision-btn good" data-label="1">Подвздошные кости видны</button>
+          <button class="decision-btn bad" data-label="0">Подвздошные кости не видны</button>
+          <button class="decision-btn uncertain" data-label="?">Сомнительно</button>
+        </div>
+        <div class="training-decision">
+          <span>Использование</span>
+          <button class="use-btn" data-use="1" title="Горячая клавиша T">В обучение · T</button>
+          <button class="use-btn" data-use="0" title="Горячая клавиша E">Не использовать · E</button>
+        </div>
+        <label class="notes-label" for="notes">Заметки</label>
+        <textarea id="notes" rows="3" placeholder="Например: слева видно, справа спорно; нижний край обрезан"></textarea>
+        <div class="actions">
+          <button id="saveBtn">Сохранить</button>
+          <button id="saveNextBtn" class="primary">Сохранить и дальше</button>
+        </div>
+        <div class="hint">Горячие клавиши: 1 — видны, 0 — не видны, ? — сомнительно, T — в обучение, E — не использовать, S — сохранить, ←/→ — навигация.</div>
+      </section>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

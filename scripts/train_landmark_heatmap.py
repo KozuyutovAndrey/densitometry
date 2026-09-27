@@ -450,6 +450,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--geometry-loss-weight", type=float, default=0.005)
     parser.add_argument("--geometry-loss-start-epoch", type=int, default=20)
+    parser.add_argument("--train-all", action="store_true", help="Train on previous train+val rows for final submission weights.")
     return parser.parse_args()
 
 
@@ -459,8 +460,10 @@ def main() -> None:
     device = torch.device(args.device)
     keys = region_keys(args.region)
     all_rows = read_csv(args.annotations_csv)
-    train_rows = filter_rows(all_rows, args.region, "train")
-    val_rows = filter_rows(all_rows, args.region, "val")
+    original_train_rows = filter_rows(all_rows, args.region, "train")
+    original_val_rows = filter_rows(all_rows, args.region, "val")
+    train_rows = original_train_rows + original_val_rows if args.train_all else original_train_rows
+    val_rows = train_rows if args.train_all else original_val_rows
     if not train_rows or not val_rows:
         raise RuntimeError(f"Empty train/val split for region={args.region}")
 
@@ -479,7 +482,11 @@ def main() -> None:
     history: list[dict[str, Any]] = []
 
     print(f"Device: {device}")
-    print(f"Train rows: {len(train_rows)} | Val rows: {len(val_rows)} | Points: {len(keys)}")
+    mode = "train_all" if args.train_all else "train_val"
+    print(
+        f"Mode: {mode} | Train rows: {len(train_rows)} | Eval rows: {len(val_rows)} "
+        f"| Original train: {len(original_train_rows)} | Original val: {len(original_val_rows)} | Points: {len(keys)}"
+    )
 
     for epoch in range(1, args.epochs + 1):
         model.train()
@@ -555,9 +562,17 @@ def main() -> None:
                 "val_rows": len(val_rows),
                 "image_size": args.image_size,
                 "epochs": args.epochs,
+                "train_all": args.train_all,
                 "geometry_loss_weight": args.geometry_loss_weight if args.region == "hip" else 0.0,
                 "geometry_loss_start_epoch": args.geometry_loss_start_epoch if args.region == "hip" else 0,
+                "original_train_rows": len(original_train_rows),
+                "original_val_rows": len(original_val_rows),
                 "best_metrics": metrics,
+                "notes": (
+                    "Final train-all model; metrics are in-sample sanity checks, not holdout validation."
+                    if args.train_all
+                    else "Metrics are measured on the held-out validation split."
+                ),
             },
             ensure_ascii=False,
             indent=2,
