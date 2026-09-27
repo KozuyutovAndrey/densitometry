@@ -275,21 +275,16 @@ uv run python scripts/train_spine_classifier.py --task positioning --epochs 60 -
 - Dropout `0.25`;
 - Linear на 1 logit;
 - loss: `BCEWithLogitsLoss`;
-- threshold подбирается по balanced accuracy;
-- для финальных весов используется `--train-all`, поэтому финальная метрика ниже является in-sample sanity-check.
+- threshold для отчета обучения подбирается по balanced accuracy;
+- финальные веса обучены через `--train-all`, но боевой threshold оставлен со старой validation-калибровки, чтобы не использовать in-sample threshold.
 
-Текущий train-all threshold:
-
-```text
-spine_positioning_prob_bad >= 0.778058 -> bad
-```
-
-Train-all sanity-check:
+Боевой validation threshold:
 
 ```text
-TP=178, FP=0, FN=0, TN=93
-balanced_accuracy=1.000
+spine_positioning_prob_bad >= 0.289507 -> bad
 ```
+
+Train-all sanity-check checkpoint threshold был `0.778058`, но в inference он не используется.
 
 ### 6.2. Spine artifact / артефакты
 
@@ -312,21 +307,16 @@ uv run python scripts/train_spine_classifier.py --task artifact --epochs 80 --ba
 - `SmallSpineCNN`;
 - вход: `1 x 224 x 224`;
 - binary classifier;
-- threshold подбирается по balanced accuracy;
-- для финальных весов используется `--train-all`, поэтому финальная метрика ниже является in-sample sanity-check.
+- threshold для отчета обучения подбирается по balanced accuracy;
+- финальные веса обучены через `--train-all`, но боевой threshold оставлен со старой validation-калибровки, чтобы не использовать in-sample threshold.
 
-Текущий train-all threshold:
-
-```text
-spine_artifact_prob_bad >= 0.059970 -> bad
-```
-
-Train-all sanity-check:
+Боевой validation threshold:
 
 ```text
-TP=28, FP=0, FN=0, TN=82
-balanced_accuracy=1.000
+spine_artifact_prob_bad >= 0.235047 -> bad
 ```
+
+Train-all sanity-check checkpoint threshold был `0.059970`, но в inference он не используется.
 
 ## 7. Quality rules
 
@@ -346,7 +336,7 @@ uv run python scripts/apply_quality_rules.py \
 Сейчас берется из CNN-классификатора:
 
 ```text
-spine_positioning_prob_bad >= 0.778058 -> violation_type includes spine_positioning
+spine_positioning_prob_bad >= 0.289507 -> violation_type includes spine_positioning
 ```
 
 Смысл: плохая укладка, если не видны подвздошные кости / нижняя часть кадра некорректна.
@@ -372,7 +362,7 @@ spine_axis_angle_deg >= 1.979 -> violation_type includes spine_axis
 Сейчас берется из CNN-классификатора:
 
 ```text
-spine_artifact_prob_bad >= 0.059970 -> violation_type includes spine_artifact
+spine_artifact_prob_bad >= 0.235047 -> violation_type includes spine_artifact
 ```
 
 ### 7.4. Hip positioning + rotation
@@ -510,16 +500,16 @@ artifacts/quality_train_landmarked_report.csv
 ```text
 quality:
   n=248
-  TP=50, FP=25, FN=21, TN=152
-  precision=0.667
-  recall=0.704
-  f1=0.685
-  balanced_accuracy=0.781
+  TP=41, FP=35, FN=30, TN=142
+  precision=0.539
+  recall=0.577
+  f1=0.558
+  balanced_accuracy=0.690
 
 spine_positioning:
   n=99
-  TP=5, FP=0, FN=1, TN=93
-  balanced_accuracy=0.917
+  TP=6, FP=15, FN=0, TN=78
+  balanced_accuracy=0.919
 
 spine_axis:
   n=99
@@ -528,8 +518,8 @@ spine_axis:
 
 spine_artifact:
   n=99
-  TP=17, FP=0, FN=0, TN=82
-  balanced_accuracy=1.000
+  TP=3, FP=0, FN=14, TN=82
+  balanced_accuracy=0.588
 
 hip_positioning_rotation:
   n=149
@@ -612,7 +602,7 @@ bottom < 59 мм:
 - проверить агрессивный вариант `bottom < 59 мм` против осторожного `bottom < 37 мм`;
 - не тюнить верхний порог до `65 мм`, если это не подтверждается визуально.
 
-3. Финальные модели переобучены на прежних train+val данных через `--train-all`; метрики после этого считать in-sample sanity-check, а не holdout validation.
+3. Финальные модели переобучены на прежних train+val данных через `--train-all`; для spine-классификаторов в inference оставлены validation-based thresholds `positioning=0.289507`, `artifact=0.235047`.
 
 4. Подготовить Docker и финальный README запуска.
 

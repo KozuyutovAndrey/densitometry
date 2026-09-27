@@ -13,6 +13,10 @@ MODEL_PATHS = {
     "positioning": ROOT / "artifacts" / "spine_classifiers" / "positioning" / "best.pt",
     "artifact": ROOT / "artifacts" / "spine_classifiers" / "artifact" / "best.pt",
 }
+VALIDATED_THRESHOLDS = {
+    "positioning": 0.2895070016384125,
+    "artifact": 0.23504738509655,
+}
 Task = Literal["positioning", "artifact"]
 
 
@@ -56,7 +60,7 @@ def load_bundle(task: str):
         "model": model,
         "target_layer": model.features[11],
         "image_size": int(checkpoint["image_size"]),
-        "threshold": float(checkpoint.get("report", {}).get("threshold", 0.5)),
+        "threshold": float(VALIDATED_THRESHOLDS.get(task, checkpoint.get("report", {}).get("threshold", 0.5))),
     }
 
 

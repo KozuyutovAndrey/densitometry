@@ -287,8 +287,10 @@ uv run python scripts/evaluate_laterality_baseline.py --train-all
 
 - hip heatmap: mean error `1.51 мм`, median `1.02 мм`, p90 `2.81 мм`;
 - spine heatmap: mean error `16.36 мм`, median `2.05 мм`, p90 `56.13 мм`;
-- spine positioning classifier: threshold `0.778058`, in-sample BA `1.000`;
-- spine artifact classifier: threshold `0.059970`, in-sample BA `1.000`.
+- spine positioning classifier: train-all weights, inference threshold `0.289507` from old validation;
+- spine artifact classifier: train-all weights, inference threshold `0.235047` from old validation.
+
+После возврата validation-порогов all-DICOM audit на `248` размеченных изображениях: quality `BA=0.690`, `F1=0.558`; `spine_artifact BA=0.588`, поэтому порог артефактов остается отдельным риском калибровки.
 
 Получить heatmap landmarks, spine-classifier predictions и собрать гибрид `hip=PyTorch`, `spine=KNN + classifiers` вручную для отладки. Для обычного end-to-end запуска используйте `scripts/run_full_inference.py` из раздела выше.
 

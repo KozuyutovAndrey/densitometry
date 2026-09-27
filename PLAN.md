@@ -478,10 +478,10 @@ All-DICOM inference после отказа от canonical-copy:
 - новый audit script: `scripts/evaluate_quality_predictions_against_landmarks.py`;
 - audit outputs: `artifacts/quality_train_landmarked_predictions.csv`, `artifacts/quality_train_landmarked_report.csv`, `artifacts/quality_train_landmarked_errors.csv`;
 - финальные модели переобучены на прежних train+val данных через `--train-all`;
-- audit на `248` вручную размеченных изображениях после train-all: overall `BA=0.781`, `F1=0.685`;
-- all-DICOM audit по отдельным критериям против ручных меток: `spine_positioning BA=0.917`, `spine_axis BA=0.793`, `spine_artifact BA=1.000`, `hip_positioning_rotation BA=0.702`, `hip_roi BA=0.819`;
+- audit на `248` вручную размеченных изображениях после train-all и возврата validation-порогов spine-классификаторов: overall `BA=0.690`, `F1=0.558`;
+- all-DICOM audit по отдельным критериям против ручных меток: `spine_positioning BA=0.919`, `spine_axis BA=0.793`, `spine_artifact BA=0.588`, `hip_positioning_rotation BA=0.702`, `hip_roi BA=0.819`;
 - стандартная validation-оценка на `50` val из `keypoint_dataset/annotations.csv` была честной до финального train-all: overall `BA=0.629`, `F1=0.462`;
-- вывод: отказ от canonical-copy технически сделан; после train-all сильнее всего остаются риски `hip_positioning_rotation` и обобщение spine artifact на новые типы артефактов.
+- вывод: отказ от canonical-copy технически сделан; после train-all сильнее всего остаются риски `spine_artifact` threshold calibration и `hip_positioning_rotation`.
 
 Отдельная проверка hip ROI:
 
