@@ -43,7 +43,10 @@ class ViewerAdapterTests(unittest.TestCase):
 
     def test_snapshot_does_not_expose_local_paths(self):
         public = server.snapshot({"id": "job", "status": "queued", "_input": Path("private.zip")})
-        self.assertEqual({"id": "job", "status": "queued"}, public)
+        self.assertEqual("job", public["id"])
+        self.assertEqual("queued", public["status"])
+        self.assertIn("thresholds", public)
+        self.assertNotIn("_input", public)
 
     def test_violation_description_explains_spine_and_hip_details(self):
         spine = server.violation_description(
@@ -85,6 +88,80 @@ class ViewerAdapterTests(unittest.TestCase):
         self.assertIn("Ротация бедра (недостаточная)", hip)
         self.assertIn("Недостаточный верхний захват", hip)
         self.assertIn("Недостаточный латеральный захват", hip)
+
+    def test_threshold_payload_accepts_comma_and_rejects_empty(self):
+        parsed = server.parse_threshold_payload({
+            "spine_axis_angle_threshold_deg": "1,979",
+            "hip_lesser_prominence_low_mm": "0,2",
+            "hip_lesser_prominence_high_mm": "6.346",
+        })
+        self.assertEqual(1.979, parsed["spine_axis_angle_threshold_deg"])
+        self.assertEqual(0.2, parsed["hip_lesser_prominence_low_mm"])
+        self.assertEqual(6.346, parsed["hip_lesser_prominence_high_mm"])
+        with self.assertRaises(ValueError):
+            server.parse_threshold_payload({
+                "hip_lesser_prominence_low_mm": "",
+                "hip_lesser_prominence_high_mm": "6.346",
+            })
+        with self.assertRaises(ValueError):
+            server.parse_threshold_payload({
+                "hip_lesser_prominence_low_mm": "7",
+                "hip_lesser_prominence_high_mm": "6",
+            })
+
+    def test_viewer_spine_axis_threshold_recalculates_quality(self):
+        detail = {"spine_axis_angle_deg": "2.5"}
+        image = {"anatomical_region": "spine", "violation_type": "", "quality_class": "0"}
+        server.apply_viewer_thresholds(image, detail, {}, {
+            "spine_axis_angle_threshold_deg": 3.0,
+            "hip_lesser_prominence_low_mm": 0.2,
+            "hip_lesser_prominence_high_mm": 6.346,
+        })
+        self.assertEqual("0", image["quality_class"])
+        server.apply_viewer_thresholds(image, detail, {}, {
+            "spine_axis_angle_threshold_deg": 1.979,
+            "hip_lesser_prominence_low_mm": 0.2,
+            "hip_lesser_prominence_high_mm": 6.346,
+        })
+        self.assertEqual("1", image["quality_class"])
+        self.assertIn("spine_axis", image["violation_type"])
+
+    def test_viewer_hip_lesser_thresholds_recalculate_quality(self):
+        point_row = {
+            "hip_greater_trochanter_top_edge_visible": "1",
+            "hip_greater_trochanter_top_edge_x": "100",
+            "hip_greater_trochanter_top_edge_y": "60",
+            "hip_greater_trochanter_lateral_edge_visible": "1",
+            "hip_greater_trochanter_lateral_edge_x": "90",
+            "hip_greater_trochanter_lateral_edge_y": "90",
+            "hip_lesser_trochanter_upper_visible": "1",
+            "hip_lesser_trochanter_upper_x": "120",
+            "hip_lesser_trochanter_upper_y": "130",
+            "hip_lesser_trochanter_lower_visible": "1",
+            "hip_lesser_trochanter_lower_x": "130",
+            "hip_lesser_trochanter_lower_y": "160",
+            "hip_ischium_edge_visible": "1",
+            "hip_ischium_edge_x": "150",
+            "hip_ischium_edge_y": "250",
+        }
+        detail = {
+            "hip_lesser_prominence_mm": "7.0",
+            "hip_top_margin_mm": "60",
+            "hip_bottom_margin_mm": "60",
+            "hip_lateral_margin_mm": "40",
+        }
+        image = {"anatomical_region": "right_hip", "violation_type": "", "quality_class": "0"}
+        server.apply_viewer_thresholds(image, detail, point_row, {
+            "hip_lesser_prominence_low_mm": 0.2,
+            "hip_lesser_prominence_high_mm": 10.0,
+        })
+        self.assertEqual("0", image["quality_class"])
+        server.apply_viewer_thresholds(image, detail, point_row, {
+            "hip_lesser_prominence_low_mm": 0.2,
+            "hip_lesser_prominence_high_mm": 6.346,
+        })
+        self.assertEqual("1", image["quality_class"])
+        self.assertIn("hip_positioning_rotation", image["violation_type"])
 
     def test_hip_horizontal_landmark_order_alone_does_not_mark_quality_bad(self):
         inference_row = {
@@ -383,6 +460,18 @@ class ViewerAdapterTests(unittest.TestCase):
         self.assertNotIn("Grad-CAM: артефакты", script)
         self.assertIn("loadGradcam", script)
         self.assertIn("drawGradcam", script)
+
+    def test_ui_has_editable_quality_thresholds(self):
+        html = (server.STATIC / "index.html").read_text()
+        script = (server.STATIC / "app.js").read_text()
+        self.assertIn('id="spine-thresholds"', html)
+        self.assertIn("Порог отклонения оси позвоночника", html)
+        self.assertIn("spine-threshold-edit", script)
+        self.assertIn('id="hip-thresholds"', html)
+        self.assertIn("Нормальный диапазон выступа малого вертела", html)
+        self.assertIn("hip-threshold-edit", script)
+        self.assertIn("parseThresholdInput", script)
+        self.assertIn("/thresholds", script)
 
     def test_gradcam_rejects_non_spine_images(self):
         with self.assertRaises(ValueError):
