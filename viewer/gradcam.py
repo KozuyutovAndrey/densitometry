@@ -15,7 +15,7 @@ MODEL_PATHS = {
 }
 VALIDATED_THRESHOLDS = {
     "positioning": 0.2895070016384125,
-    "artifact": 0.23504738509655,
+    "artifact": 0.38129135966300964,
 }
 Task = Literal["positioning", "artifact"]
 

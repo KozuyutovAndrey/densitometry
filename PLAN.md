@@ -293,7 +293,7 @@ spine_axis_bad если angle >= 1.979 deg
 
 ### 3. Spine artifact
 
-Ранее не было отдельной модели. Сейчас реализован отдельный CNN-классификатор `spine_artifact`; в ручной разметке `spine_artifact=1`: `17` из `99` spine canonical.
+Ранее не было отдельной модели. Сейчас реализован отдельный CNN-классификатор `spine_artifact`; в ручной разметке `spine_artifact=1`: `21` из `99` spine canonical после ручной перепроверки artifact-разметки.
 
 Основной ожидаемый паттерн: косточки бюстгальтера, видимые как дуги/параболы с вершинами вниз; ребра имеют противоположный изгиб. Нужно делать отдельный classifier/detector по spine-изображениям, не смешивать с axis/positioning.
 
@@ -326,7 +326,7 @@ hip_rotation_bad если prominence <= 0.20 мм OR prominence >= 6.346 мм
 
 1. Для spine positioning: сделать `iliac_visible` score/detector, начать с synthetic bottom-crop augmentation нормальных снимков. Полноценный CNN только на реальных `6` missing cases рискован, поэтому synthetic crop используем как bootstrap.
 2. Для hip rotation: пока оставить two-sided prominence rule; вернуться к улучшению позже, после обучения на всём наборе.
-3. Для spine artifact: собрать отдельный artifact classifier. Positive cases `17`, из них train `11`, val `6`. Для train добавлена left-right mirror augmentation, потому что косточки бюстгальтера сохраняют форму при зеркалировании по вертикальной оси.
+3. Для spine artifact: собрать отдельный artifact classifier. Positive cases после ручной перепроверки: `21`, из них train `15`, val `6`. Для train добавлена left-right mirror augmentation, потому что косточки бюстгальтера сохраняют форму при зеркалировании по вертикальной оси.
 
 Созданы два отдельных augmented dataset, потому что `spine_positioning` и `spine_artifact` - разные задачи и их нельзя смешивать в одном обучающем наборе.
 
@@ -362,10 +362,11 @@ uv run python scripts/build_spine_artifact_dataset.py
 
 Состав после генерации:
 
-- всего строк: `110`;
-- train original spine: `79`, из них artifact bad: `11`;
+- всего строк после ручной перепроверки: `114`;
+- train original spine: `79`, из них artifact bad: `15`;
 - val original spine: `20`, из них artifact bad: `6`;
-- synthetic train artifact horizontal flip: `11`.
+- synthetic train artifact horizontal flip: `15`;
+- ручная перепроверка сохранена в `artifacts/spine_artifact_dataset/manual_artifact_review.csv`.
 
 Старый смешанный `artifacts/spine_classifier_dataset/` удалён: он объединял две разные задачи и не должен пересоздаваться.
 
@@ -388,9 +389,9 @@ uv run python scripts/train_spine_classifier.py --task artifact --epochs 80 --ba
 Val sanity-check отдельных классификаторов:
 
 - positioning: `TP=1`, `FP=0`, `FN=1`, `TN=18`, balanced accuracy `0.75`; FN - `img492`, спорная метка, так как оба подвздошных гребня размечены видимыми;
-- artifact: `TP=5`, `FP=1`, `FN=1`, `TN=13`, balanced accuracy `0.881`; ошибки: FP `img085`, FN `img257`.
+- artifact после ручной перепроверки: `TP=5`, `FP=1`, `FN=1`, `TN=13`, balanced accuracy `0.881`, threshold `0.381291`;
 
-Эти классификаторы встроены в общий quality validation/inference: `spine_positioning` и `spine_artifact` теперь берутся из CNN, `spine_axis` остается по landmark-геометрии. Текущий validation после встраивания: overall quality `TP=6`, `FP=4`, `FN=10`, `TN=30`, balanced accuracy `0.629`; quality_spine balanced accuracy `0.687`.
+Эти классификаторы встроены в общий quality validation/inference: `spine_positioning` и `spine_artifact` берутся из CNN, `spine_axis` остается по landmark-геометрии. Текущий validation после исправления artifact-разметки: overall quality `TP=13`, `FP=6`, `FN=3`, `TN=28`, balanced accuracy `0.818`; quality_spine balanced accuracy `0.717`.
 
 ## Этап 6. Inference и формат ответа
 
@@ -478,10 +479,10 @@ All-DICOM inference после отказа от canonical-copy:
 - новый audit script: `scripts/evaluate_quality_predictions_against_landmarks.py`;
 - audit outputs: `artifacts/quality_train_landmarked_predictions.csv`, `artifacts/quality_train_landmarked_report.csv`, `artifacts/quality_train_landmarked_errors.csv`;
 - финальные модели переобучены на прежних train+val данных через `--train-all`;
-- audit на `248` вручную размеченных изображениях после train-all и возврата validation-порогов spine-классификаторов: overall `BA=0.690`, `F1=0.558`;
-- all-DICOM audit по отдельным критериям против ручных меток: `spine_positioning BA=0.919`, `spine_axis BA=0.793`, `spine_artifact BA=0.588`, `hip_positioning_rotation BA=0.702`, `hip_roi BA=0.819`;
-- стандартная validation-оценка на `50` val из `keypoint_dataset/annotations.csv` была честной до финального train-all: overall `BA=0.629`, `F1=0.462`;
-- вывод: отказ от canonical-copy технически сделан; после train-all сильнее всего остаются риски `spine_artifact` threshold calibration и `hip_positioning_rotation`.
+- audit на `248` вручную размеченных изображениях после train-all и возврата validation-порогов spine-классификаторов: overall `BA=0.749`, `F1=0.634`;
+- all-DICOM audit по отдельным критериям против ручных меток: `spine_positioning BA=0.919`, `spine_axis BA=0.793`, `spine_artifact BA=0.970`, `hip_positioning_rotation BA=0.702`, `hip_roi BA=0.819`;
+- стандартная validation-оценка на `50` val из `keypoint_dataset/annotations.csv` после исправления artifact-разметки: overall `BA=0.818`, `F1=0.743`;
+- вывод: отказ от canonical-copy технически сделан; после исправления artifact-разметки сильнее всего остаются риски `spine_positioning` FP и `hip_positioning_rotation`.
 
 Отдельная проверка hip ROI:
 

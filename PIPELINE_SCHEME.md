@@ -313,7 +313,7 @@ uv run python scripts/train_spine_classifier.py --task artifact --epochs 80 --ba
 Боевой validation threshold:
 
 ```text
-spine_artifact_prob_bad >= 0.235047 -> bad
+spine_artifact_prob_bad >= 0.381291 -> bad
 ```
 
 Train-all sanity-check checkpoint threshold был `0.059970`, но в inference он не используется.
@@ -362,7 +362,7 @@ spine_axis_angle_deg >= 1.979 -> violation_type includes spine_axis
 Сейчас берется из CNN-классификатора:
 
 ```text
-spine_artifact_prob_bad >= 0.235047 -> violation_type includes spine_artifact
+spine_artifact_prob_bad >= 0.381291 -> violation_type includes spine_artifact
 ```
 
 ### 7.4. Hip positioning + rotation
@@ -459,27 +459,31 @@ artifacts/quality_validation_report.csv
 ```text
 quality:
   n=50
-  TP=6, FP=4, FN=10, TN=30
-  precision=0.600
-  recall=0.375
-  f1=0.462
-  balanced_accuracy=0.629
+  TP=13, FP=6, FN=3, TN=28
+  precision=0.684
+  recall=0.812
+  f1=0.743
+  balanced_accuracy=0.818
 
 spine_positioning:
   n=20
-  balanced_accuracy=0.750
+  TP=2, FP=6, FN=0, TN=12
+  balanced_accuracy=0.833
 
 spine_axis:
   n=20
+  TP=1, FP=1, FN=1, TN=17
   balanced_accuracy=0.722
 
 spine_artifact:
   n=20
-  balanced_accuracy=0.798
+  TP=6, FP=0, FN=0, TN=14
+  balanced_accuracy=1.000
 
 hip_positioning_rotation:
   n=30
-  balanced_accuracy=0.528
+  TP=5, FP=1, FN=2, TN=22
+  balanced_accuracy=0.835
 
 hip_roi:
   n=30
@@ -500,11 +504,11 @@ artifacts/quality_train_landmarked_report.csv
 ```text
 quality:
   n=248
-  TP=41, FP=35, FN=30, TN=142
-  precision=0.539
-  recall=0.577
-  f1=0.558
-  balanced_accuracy=0.690
+  TP=51, FP=39, FN=20, TN=138
+  precision=0.567
+  recall=0.718
+  f1=0.634
+  balanced_accuracy=0.749
 
 spine_positioning:
   n=99
@@ -518,8 +522,8 @@ spine_axis:
 
 spine_artifact:
   n=99
-  TP=3, FP=0, FN=14, TN=82
-  balanced_accuracy=0.588
+  TP=17, FP=5, FN=0, TN=77
+  balanced_accuracy=0.970
 
 hip_positioning_rotation:
   n=149
@@ -602,7 +606,7 @@ bottom < 59 мм:
 - проверить агрессивный вариант `bottom < 59 мм` против осторожного `bottom < 37 мм`;
 - не тюнить верхний порог до `65 мм`, если это не подтверждается визуально.
 
-3. Финальные модели переобучены на прежних train+val данных через `--train-all`; для spine-классификаторов в inference оставлены validation-based thresholds `positioning=0.289507`, `artifact=0.235047`.
+3. Финальные модели переобучены на прежних train+val данных через `--train-all`; для spine-классификаторов в inference оставлены validation-based thresholds `positioning=0.289507`, `artifact=0.381291`.
 
 4. Подготовить Docker и финальный README запуска.
 
