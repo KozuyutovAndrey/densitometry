@@ -1,0 +1,31 @@
+{
+  "task": "positioning",
+  "dataset_dir": "/home/s0ft44/projects/densitometry/artifacts/spine_positioning_dataset",
+  "label_col": "positioning_bad",
+  "out_dir": "artifacts/spine_classifiers/positioning_validation_calibration",
+  "device": "cuda",
+  "train_all": false,
+  "train_rows": 133,
+  "eval_rows": 16,
+  "original_train_rows": 133,
+  "original_val_rows": 16,
+  "train_positive": 50,
+  "train_negative": 83,
+  "manual_review_csv": "/home/s0ft44/projects/densitometry/artifacts/spine_positioning_dataset/manual_iliac_review.csv",
+  "balanced_positioning_val": true,
+  "balanced_positioning_val_per_class": 8,
+  "best_report": {
+    "threshold": 0.7809473276138306,
+    "tp": 8,
+    "fp": 1,
+    "fn": 0,
+    "tn": 7,
+    "precision": 0.8888888888888888,
+    "recall": 1.0,
+    "specificity": 0.875,
+    "f1": 0.9411764705882353,
+    "balanced_accuracy": 0.9375,
+    "accuracy": 0.9375
+  },
+  "notes": "Val set is tiny; treat this as a sanity check, not a stable leaderboard estimate."
+}

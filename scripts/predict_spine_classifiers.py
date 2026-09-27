@@ -21,7 +21,7 @@ DEFAULT_DICOM_INPUT = ROOT / "data" / "Для теста.zip"
 DEFAULT_POSITIONING_MODEL = ROOT / "artifacts" / "spine_classifiers" / "positioning" / "best.pt"
 DEFAULT_ARTIFACT_MODEL = ROOT / "artifacts" / "spine_classifiers" / "artifact" / "best.pt"
 DEFAULT_OUT_CSV = ROOT / "artifacts" / "inference_spine_classifier_predictions.csv"
-VALIDATED_SPINE_POSITIONING_THRESHOLD = 0.2895070016384125
+VALIDATED_SPINE_POSITIONING_THRESHOLD = 0.7809473276138306
 VALIDATED_SPINE_ARTIFACT_THRESHOLD = 0.38129135966300964
 VALIDATED_THRESHOLDS = {
     "positioning": VALIDATED_SPINE_POSITIONING_THRESHOLD,

@@ -1,4 +1,4 @@
 input_source,study_key,member,filename,anatomical_region,is_canonical_for_region,spine_classifier_status,processing_seconds,spine_positioning_prob_bad,spine_positioning_threshold,spine_positioning_pred_bad,spine_artifact_prob_bad,spine_artifact_threshold,spine_artifact_pred_bad
-Для теста.zip,Для теста,Для теста/CR000000_ПОП.dcm,CR000000_ПОП.dcm,spine,1,predicted,0.221151,0.082316,0.289507,0,0.991699,0.381291,1
+Для теста.zip,Для теста,Для теста/CR000000_ПОП.dcm,CR000000_ПОП.dcm,spine,1,predicted,0.221231,0.068555,0.780947,0,0.991699,0.381291,1
 Для теста.zip,Для теста,Для теста/CR000000_ППОБ.dcm,CR000000_ППОБ.dcm,right_hip,1,skipped_non_spine,0.000012,,,,,,
 Для теста.zip,Для теста,Для теста/CR000001_ЛПОБ.dcm,CR000001_ЛПОБ.dcm,left_hip,1,skipped_non_spine,0.000008,,,,,,

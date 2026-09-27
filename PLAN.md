@@ -272,12 +272,11 @@ Landmark baseline на val:
 По ручной landmark-разметке:
 
 - spine canonical: `99`;
-- `spine_positioning=1`: `6`;
-- оба подвздошных гребня видны: `93`;
-- оба/один гребень отсутствуют: `6`;
-- правило `bad если нет хотя бы одного подвздошного гребня`: `TP=5`, `FP=1`, `FN=1`, `TN=92`.
+- после ручной перепроверки подвздошных костей: `91` good / `8` bad на оригинальных spine-снимках;
+- synthetic bottom-crop review: из `172` синтетических bad оставлено `55` для обучения, `117` исключено как лишние/слишком однотипные;
+- итоговый training pool для positioning: `154` примера, из них `91` good и `63` bad.
 
-Вывод: правило хорошее на ручных точках, но KNN на validation всегда старается поставить подвздошные landmarks даже при отсутствии структуры. Нужен отдельный `iliac_visible` detector/classifier или heatmap-confidence/visibility score. Данных для полноценного CNN-классификатора мало: всего `6` случаев отсутствия подвздошных костей.
+Вывод: KNN-landmarks для подвздошных костей использовать как основной признак нельзя, потому что модель ставит точки даже при отсутствии структуры. Для `spine_positioning` используется отдельный CNN `iliac_visible` classifier.
 
 ### 2. Spine axis
 
@@ -343,11 +342,11 @@ uv run python scripts/build_spine_positioning_dataset.py
 
 Состав после генерации:
 
-- всего строк: `271`;
-- train original spine: `79`, из них positioning bad: `4`;
-- val original spine: `20`, из них positioning bad: `2`;
-- synthetic train bottom crop positioning bad: `172`;
-- crop попадает в набор только если по landmark-точкам обрезка действительно убрала оба подвздошных гребня.
+- всего строк после генерации: `271`;
+- ручная перепроверка сохранена в `artifacts/spine_positioning_dataset/manual_iliac_review.csv`;
+- для обучения включено `154`: `99` original + `55` synthetic bottom-crop;
+- баланс включённых примеров: `91` good / `63` bad;
+- исключено из обучения `117` synthetic bad-crop.
 
 Артефакты позвоночника / косточки бюстгальтера и наложения:
 
@@ -373,7 +372,7 @@ uv run python scripts/build_spine_artifact_dataset.py
 Обучены первые независимые классификаторы:
 
 ```bash
-uv run python scripts/train_spine_classifier.py --task positioning --epochs 60 --batch-size 16
+uv run python scripts/train_spine_classifier.py --task positioning --epochs 60 --batch-size 16 --balanced-positioning-val
 uv run python scripts/train_spine_classifier.py --task artifact --epochs 80 --batch-size 16
 ```
 
@@ -388,10 +387,10 @@ uv run python scripts/train_spine_classifier.py --task artifact --epochs 80 --ba
 
 Val sanity-check отдельных классификаторов:
 
-- positioning: `TP=1`, `FP=0`, `FN=1`, `TN=18`, balanced accuracy `0.75`; FN - `img492`, спорная метка, так как оба подвздошных гребня размечены видимыми;
+- positioning после ручной перепроверки и balanced holdout `8 good / 8 bad`: `TP=8`, `FP=1`, `FN=0`, `TN=7`, balanced accuracy `0.938`, threshold `0.780947`;
 - artifact после ручной перепроверки: `TP=5`, `FP=1`, `FN=1`, `TN=13`, balanced accuracy `0.881`, threshold `0.381291`;
 
-Эти классификаторы встроены в общий quality validation/inference: `spine_positioning` и `spine_artifact` берутся из CNN, `spine_axis` остается по landmark-геометрии. Текущий validation после исправления artifact-разметки: overall quality `TP=13`, `FP=6`, `FN=3`, `TN=28`, balanced accuracy `0.818`; quality_spine balanced accuracy `0.717`.
+Эти классификаторы встроены в общий quality validation/inference: `spine_positioning` и `spine_artifact` берутся из CNN, `spine_axis` остается по landmark-геометрии. Текущий validation после исправления artifact и iliac-разметки: overall quality `TP=12`, `FP=2`, `FN=4`, `TN=32`, balanced accuracy `0.846`; quality_spine balanced accuracy `0.843`.
 
 ## Этап 6. Inference и формат ответа
 
@@ -478,11 +477,12 @@ All-DICOM inference после отказа от canonical-copy:
 - `apply_quality_rules.py`: `499` quality rows, все со статусом `quality_predicted_hybrid`;
 - новый audit script: `scripts/evaluate_quality_predictions_against_landmarks.py`;
 - audit outputs: `artifacts/quality_train_landmarked_predictions.csv`, `artifacts/quality_train_landmarked_report.csv`, `artifacts/quality_train_landmarked_errors.csv`;
-- финальные модели переобучены на прежних train+val данных через `--train-all`;
-- audit на `248` вручную размеченных изображениях после train-all и возврата validation-порогов spine-классификаторов: overall `BA=0.749`, `F1=0.634`;
-- all-DICOM audit по отдельным критериям против ручных меток: `spine_positioning BA=0.919`, `spine_axis BA=0.793`, `spine_artifact BA=0.970`, `hip_positioning_rotation BA=0.702`, `hip_roi BA=0.819`;
-- стандартная validation-оценка на `50` val из `keypoint_dataset/annotations.csv` после исправления artifact-разметки: overall `BA=0.818`, `F1=0.743`;
-- вывод: отказ от canonical-copy технически сделан; после исправления artifact-разметки сильнее всего остаются риски `spine_positioning` FP и `hip_positioning_rotation`.
+- финальные модели переобучены на train+val данных через `--train-all`;
+- для `spine_positioning` обучение использует ручной `manual_iliac_review.csv` и только строки `review_use_for_training=1`;
+- audit на `248` вручную размеченных изображениях после train-all и validation-порогов spine-классификаторов: overall `BA=0.770`, `F1=0.667`;
+- all-DICOM audit по отдельным критериям против ручных меток: `spine_positioning BA=0.906`, `spine_axis BA=0.793`, `spine_artifact BA=0.970`, `hip_positioning_rotation BA=0.702`, `hip_roi BA=0.819`;
+- стандартная validation-оценка на `50` val из `keypoint_dataset/annotations.csv` после исправления artifact и iliac-разметки: overall `BA=0.846`, `F1=0.800`;
+- вывод: отказ от canonical-copy технически сделан; после ручного отбора positioning-синтетики снизили FP и улучшили общий quality, но остаются риски `hip_positioning_rotation` и спорный FN по `spine_positioning`.
 
 Отдельная проверка hip ROI:
 

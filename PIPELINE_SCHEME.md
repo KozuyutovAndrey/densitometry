@@ -256,14 +256,15 @@ spine landmarks -> kNN fallback
 Скрипт обучения:
 
 ```bash
-uv run python scripts/train_spine_classifier.py --task positioning --epochs 60 --batch-size 16
+uv run python scripts/train_spine_classifier.py --task positioning --epochs 60 --batch-size 16 --balanced-positioning-val
 uv run python scripts/train_spine_classifier.py --task positioning --epochs 60 --batch-size 16 --train-all
 ```
 
 Данные:
 
 - оригинальные spine-изображения;
-- синтетические негативы: у нормальных spine-снимков обрезается низ так, чтобы убрать подвздошные кости.
+- синтетические негативы: у нормальных spine-снимков обрезается низ так, чтобы убрать подвздошные кости;
+- ручной review `artifacts/spine_positioning_dataset/manual_iliac_review.csv`: в обучение включены только строки `review_use_for_training=1`.
 
 Модель:
 
@@ -276,15 +277,16 @@ uv run python scripts/train_spine_classifier.py --task positioning --epochs 60 -
 - Linear на 1 logit;
 - loss: `BCEWithLogitsLoss`;
 - threshold для отчета обучения подбирается по balanced accuracy;
-- финальные веса обучены через `--train-all`, но боевой threshold оставлен со старой validation-калибровки, чтобы не использовать in-sample threshold.
+- calibration использует balanced holdout из оригинальных снимков `8 good / 8 bad` без пересечения `study_folder` с train;
+- финальные веса обучены через `--train-all`, но боевой threshold оставлен с balanced validation-калибровки, чтобы не использовать in-sample threshold.
 
 Боевой validation threshold:
 
 ```text
-spine_positioning_prob_bad >= 0.289507 -> bad
+spine_positioning_prob_bad >= 0.780947 -> bad
 ```
 
-Train-all sanity-check checkpoint threshold был `0.778058`, но в inference он не используется.
+Train-all sanity-check checkpoint threshold был `0.748786`, но в inference он не используется.
 
 ### 6.2. Spine artifact / артефакты
 
@@ -336,7 +338,7 @@ uv run python scripts/apply_quality_rules.py \
 Сейчас берется из CNN-классификатора:
 
 ```text
-spine_positioning_prob_bad >= 0.289507 -> violation_type includes spine_positioning
+spine_positioning_prob_bad >= 0.780947 -> violation_type includes spine_positioning
 ```
 
 Смысл: плохая укладка, если не видны подвздошные кости / нижняя часть кадра некорректна.
@@ -459,16 +461,16 @@ artifacts/quality_validation_report.csv
 ```text
 quality:
   n=50
-  TP=13, FP=6, FN=3, TN=28
-  precision=0.684
-  recall=0.812
-  f1=0.743
-  balanced_accuracy=0.818
+  TP=12, FP=2, FN=4, TN=32
+  precision=0.857
+  recall=0.750
+  f1=0.800
+  balanced_accuracy=0.846
 
 spine_positioning:
   n=20
-  TP=2, FP=6, FN=0, TN=12
-  balanced_accuracy=0.833
+  TP=1, FP=0, FN=1, TN=18
+  balanced_accuracy=0.750
 
 spine_axis:
   n=20
@@ -504,16 +506,16 @@ artifacts/quality_train_landmarked_report.csv
 ```text
 quality:
   n=248
-  TP=51, FP=39, FN=20, TN=138
-  precision=0.567
-  recall=0.718
-  f1=0.634
-  balanced_accuracy=0.749
+  TP=50, FP=29, FN=21, TN=148
+  precision=0.633
+  recall=0.704
+  f1=0.667
+  balanced_accuracy=0.770
 
 spine_positioning:
   n=99
-  TP=6, FP=15, FN=0, TN=78
-  balanced_accuracy=0.919
+  TP=5, FP=2, FN=1, TN=91
+  balanced_accuracy=0.906
 
 spine_axis:
   n=99
@@ -606,7 +608,7 @@ bottom < 59 мм:
 - проверить агрессивный вариант `bottom < 59 мм` против осторожного `bottom < 37 мм`;
 - не тюнить верхний порог до `65 мм`, если это не подтверждается визуально.
 
-3. Финальные модели переобучены на прежних train+val данных через `--train-all`; для spine-классификаторов в inference оставлены validation-based thresholds `positioning=0.289507`, `artifact=0.381291`.
+3. Финальные модели переобучены на train+val данных через `--train-all`; для spine-классификаторов в inference оставлены validation-based thresholds `positioning=0.780947`, `artifact=0.381291`.
 
 4. Подготовить Docker и финальный README запуска.
 

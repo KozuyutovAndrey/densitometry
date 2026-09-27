@@ -14,7 +14,7 @@ MODEL_PATHS = {
     "artifact": ROOT / "artifacts" / "spine_classifiers" / "artifact" / "best.pt",
 }
 VALIDATED_THRESHOLDS = {
-    "positioning": 0.2895070016384125,
+    "positioning": 0.7809473276138306,
     "artifact": 0.38129135966300964,
 }
 Task = Literal["positioning", "artifact"]
