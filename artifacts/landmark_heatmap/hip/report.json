@@ -8,22 +8,26 @@
     "hip_lesser_trochanter_lower",
     "hip_ischium_edge"
   ],
-  "train_rows": 119,
-  "val_rows": 30,
+  "train_rows": 149,
+  "val_rows": 149,
   "image_size": 256,
   "epochs": 80,
+  "train_all": true,
   "geometry_loss_weight": 0.0,
   "geometry_loss_start_epoch": 9999,
+  "original_train_rows": 119,
+  "original_val_rows": 30,
   "best_metrics": {
-    "mean_error_mm": 4.364210680316925,
-    "median_error_mm": 1.985103822609237,
-    "p90_error_mm": 6.318734507980363,
-    "n_points": 171.0,
-    "hip_greater_trochanter_top_edge_mean_error_mm": 1.4904424921540076,
-    "hip_greater_trochanter_lateral_edge_mean_error_mm": 2.602049502709386,
-    "hip_lesser_trochanter_upper_mean_error_mm": 3.058066119267779,
-    "hip_lesser_trochanter_tip_mean_error_mm": 6.628392245405564,
-    "hip_lesser_trochanter_lower_mean_error_mm": 5.4925558569667,
-    "hip_ischium_edge_mean_error_mm": 7.122396083467044
-  }
+    "mean_error_mm": 1.5050841315433603,
+    "median_error_mm": 1.0160138788922042,
+    "p90_error_mm": 2.8108015150405525,
+    "n_points": 866.0,
+    "hip_greater_trochanter_top_edge_mean_error_mm": 1.2087738398215069,
+    "hip_greater_trochanter_lateral_edge_mean_error_mm": 2.0185446907855895,
+    "hip_lesser_trochanter_upper_mean_error_mm": 1.4332253497843253,
+    "hip_lesser_trochanter_tip_mean_error_mm": 1.0964661006347078,
+    "hip_lesser_trochanter_lower_mean_error_mm": 1.6312227511324437,
+    "hip_ischium_edge_mean_error_mm": 1.6216514097222008
+  },
+  "notes": "Final train-all model; metrics are in-sample sanity checks, not holdout validation."
 }

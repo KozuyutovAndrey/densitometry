@@ -477,10 +477,11 @@ All-DICOM inference после отказа от canonical-copy:
 - `apply_quality_rules.py`: `499` quality rows, все со статусом `quality_predicted_hybrid`;
 - новый audit script: `scripts/evaluate_quality_predictions_against_landmarks.py`;
 - audit outputs: `artifacts/quality_train_landmarked_predictions.csv`, `artifacts/quality_train_landmarked_report.csv`, `artifacts/quality_train_landmarked_errors.csv`;
-- audit на `248` вручную размеченных изображениях: overall `BA=0.687`, `F1=0.553`;
-- all-DICOM audit по отдельным критериям против ручных меток: `spine_positioning BA=0.911`, `spine_axis BA=0.749`, `spine_artifact BA=0.929`, `hip_positioning_rotation BA=0.577`, `hip_roi BA=0.490`;
-- стандартная validation-оценка на `50` val из `keypoint_dataset/annotations.csv` осталась: overall `BA=0.629`, `F1=0.462`;
-- вывод: отказ от canonical-copy технически сделан, но теперь явно видны слабые места `hip_roi` и `hip_positioning_rotation` на crop/non-canonical случаях.
+- финальные модели переобучены на прежних train+val данных через `--train-all`;
+- audit на `248` вручную размеченных изображениях после train-all: overall `BA=0.781`, `F1=0.685`;
+- all-DICOM audit по отдельным критериям против ручных меток: `spine_positioning BA=0.917`, `spine_axis BA=0.793`, `spine_artifact BA=1.000`, `hip_positioning_rotation BA=0.702`, `hip_roi BA=0.819`;
+- стандартная validation-оценка на `50` val из `keypoint_dataset/annotations.csv` была честной до финального train-all: overall `BA=0.629`, `F1=0.462`;
+- вывод: отказ от canonical-copy технически сделан; после train-all сильнее всего остаются риски `hip_positioning_rotation` и обобщение spine artifact на новые типы артефактов.
 
 Отдельная проверка hip ROI:
 
@@ -502,7 +503,7 @@ All-DICOM inference после отказа от canonical-copy:
 
 ## Этап 7. Docker и сдача
 
-Статус: финальный этап.
+Статус: финальный этап; модели уже переобучены на прежних train+val данных для submission-весов.
 
 Нужно:
 

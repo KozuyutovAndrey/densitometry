@@ -255,8 +255,10 @@ def train(args: argparse.Namespace) -> None:
 
     seed_everything(args.seed)
     rows = read_csv(dataset_dir / "annotations.csv")
-    train_rows = [row for row in rows if row["split"] == "train"]
-    val_rows = [row for row in rows if row["split"] == "val"]
+    original_train_rows = [row for row in rows if row["split"] == "train"]
+    original_val_rows = [row for row in rows if row["split"] == "val"]
+    train_rows = original_train_rows + original_val_rows if args.train_all else original_train_rows
+    val_rows = train_rows if args.train_all else original_val_rows
     if not train_rows or not val_rows:
         raise ValueError("Need non-empty train and val splits")
 
@@ -291,7 +293,12 @@ def train(args: argparse.Namespace) -> None:
     best_report: dict[str, Any] | None = None
     history: list[dict[str, Any]] = []
 
-    print(f"task={args.task} device={device} train={len(train_rows)} val={len(val_rows)} pos_weight={pos_weight.item():.3f}")
+    mode = "train_all" if args.train_all else "train_val"
+    print(
+        f"task={args.task} mode={mode} device={device} train={len(train_rows)} "
+        f"eval={len(val_rows)} original_train={len(original_train_rows)} "
+        f"original_val={len(original_val_rows)} pos_weight={pos_weight.item():.3f}"
+    )
     for epoch in range(1, args.epochs + 1):
         model.train()
         train_loss = 0.0
@@ -350,12 +357,19 @@ def train(args: argparse.Namespace) -> None:
         "label_col": label_col,
         "out_dir": str(out_dir),
         "device": str(device),
+        "train_all": args.train_all,
         "train_rows": len(train_rows),
-        "val_rows": len(val_rows),
+        "eval_rows": len(val_rows),
+        "original_train_rows": len(original_train_rows),
+        "original_val_rows": len(original_val_rows),
         "train_positive": pos,
         "train_negative": neg,
         "best_report": best_report,
-        "notes": "Val set is tiny; treat this as a sanity check, not a stable leaderboard estimate.",
+        "notes": (
+            "Final train-all model; metrics are in-sample sanity checks, not holdout validation."
+            if args.train_all
+            else "Val set is tiny; treat this as a sanity check, not a stable leaderboard estimate."
+        ),
     }
     (out_dir / "report.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2))
     print(json.dumps(summary, ensure_ascii=False, indent=2))
@@ -375,6 +389,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--num-workers", type=int, default=2)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--cpu", action="store_true")
+    parser.add_argument("--train-all", action="store_true", help="Train on previous train+val rows for final submission weights.")
     return parser.parse_args()
 
 

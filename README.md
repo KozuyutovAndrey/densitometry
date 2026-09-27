@@ -267,10 +267,28 @@ uv run python scripts/train_landmark_heatmap.py --region hip --epochs 80 --batch
 uv run python scripts/train_landmark_heatmap.py --region spine --epochs 80 --batch-size 8
 ```
 
-Текущий результат на val:
+Финальное переобучение перед сдачей на прежних train+val данных:
+
+```bash
+uv run python scripts/train_landmark_heatmap.py --region hip --epochs 80 --batch-size 8 --geometry-loss-weight 0 --geometry-loss-start-epoch 9999 --train-all
+uv run python scripts/train_landmark_heatmap.py --region spine --epochs 80 --batch-size 8 --train-all
+uv run python scripts/train_spine_classifier.py --task positioning --epochs 60 --batch-size 16 --train-all
+uv run python scripts/train_spine_classifier.py --task artifact --epochs 80 --batch-size 16 --train-all
+uv run python scripts/evaluate_landmark_knn.py --train-all
+uv run python scripts/evaluate_laterality_baseline.py --train-all
+```
+
+Текущий результат на прежнем val до финального train-all:
 
 - hip heatmap: mean error `4.36 мм`, median `1.99 мм`, p90 `6.32 мм`;
 - spine heatmap: mean error `58.97 мм`, хуже KNN, поэтому пока не используем в гибриде.
+
+Финальный train-all sanity-check по объединенному train+val:
+
+- hip heatmap: mean error `1.51 мм`, median `1.02 мм`, p90 `2.81 мм`;
+- spine heatmap: mean error `16.36 мм`, median `2.05 мм`, p90 `56.13 мм`;
+- spine positioning classifier: threshold `0.778058`, in-sample BA `1.000`;
+- spine artifact classifier: threshold `0.059970`, in-sample BA `1.000`.
 
 Получить heatmap landmarks, spine-classifier predictions и собрать гибрид `hip=PyTorch`, `spine=KNN + classifiers` вручную для отладки. Для обычного end-to-end запуска используйте `scripts/run_full_inference.py` из раздела выше.
 
