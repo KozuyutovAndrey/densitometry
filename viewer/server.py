@@ -67,8 +67,14 @@ def visible_landmark_points(point_row, detail):
     return points
 
 
+SPINE_AXIS_ANGLE_THRESHOLD_DEG = 1.979
 HIP_LESSER_PROMINENCE_LOW_THRESHOLD_MM = 0.200
 HIP_LESSER_PROMINENCE_HIGH_THRESHOLD_MM = 6.346
+DEFAULT_THRESHOLDS = {
+    "spine_axis_angle_threshold_deg": SPINE_AXIS_ANGLE_THRESHOLD_DEG,
+    "hip_lesser_prominence_low_mm": HIP_LESSER_PROMINENCE_LOW_THRESHOLD_MM,
+    "hip_lesser_prominence_high_mm": HIP_LESSER_PROMINENCE_HIGH_THRESHOLD_MM,
+}
 HIP_ROI_TOP_THRESHOLD_MM = 30.0
 HIP_ROI_LATERAL_THRESHOLD_MM = 20.0
 HIP_ROI_BOTTOM_THRESHOLD_MM = 30.0
@@ -77,6 +83,47 @@ HIP_ROI_LESSER_LOWER_BOTTOM_THRESHOLD_MM = 30.0
 
 def violation_codes(row):
     return {value.strip() for value in (row.get("violation_type") or "").split(";") if value.strip()}
+
+
+def threshold_settings(job_or_none=None):
+    settings = dict(DEFAULT_THRESHOLDS)
+    if job_or_none:
+        settings.update(job_or_none.get("thresholds") or {})
+    return settings
+
+
+def parse_threshold(value, field):
+    if isinstance(value, str):
+        value = value.strip().replace(",", ".")
+    try:
+        number_value = float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"Некорректное значение порога: {field}") from None
+    if not math.isfinite(number_value) or number_value < 0:
+        raise ValueError(f"Некорректное значение порога: {field}")
+    return number_value
+
+
+def parse_threshold_payload(payload, current=None):
+    settings = threshold_settings(current)
+    if "spine_axis_angle_threshold_deg" in payload:
+        settings["spine_axis_angle_threshold_deg"] = parse_threshold(
+            payload.get("spine_axis_angle_threshold_deg"),
+            "порог угла позвоночника",
+        )
+    if "hip_lesser_prominence_low_mm" in payload:
+        settings["hip_lesser_prominence_low_mm"] = parse_threshold(
+            payload.get("hip_lesser_prominence_low_mm"),
+            "нижняя граница",
+        )
+    if "hip_lesser_prominence_high_mm" in payload:
+        settings["hip_lesser_prominence_high_mm"] = parse_threshold(
+            payload.get("hip_lesser_prominence_high_mm"),
+            "верхняя граница",
+        )
+    if settings["hip_lesser_prominence_low_mm"] >= settings["hip_lesser_prominence_high_mm"]:
+        raise ValueError("Нижняя граница должна быть меньше верхней")
+    return settings
 
 
 def landmark_point(point_row, key):
@@ -110,7 +157,47 @@ def hip_positioning_is_bad(point_row, region):
     return not all(required) or hip_landmark_order_is_bad(point_row, region)
 
 
-def violation_description(row, detail, point_row):
+def hip_rotation_is_bad(prominence, thresholds):
+    return (
+        prominence is None
+        or prominence <= thresholds["hip_lesser_prominence_low_mm"]
+        or prominence >= thresholds["hip_lesser_prominence_high_mm"]
+    )
+
+
+def apply_viewer_thresholds(image, detail, point_row, thresholds):
+    region = image.get("anatomical_region")
+    if region not in {"spine", "left_hip", "right_hip"}:
+        return
+
+    codes = violation_codes(image)
+    if region == "spine":
+        codes.discard("spine_axis")
+        angle = number(detail.get("spine_axis_angle_deg"))
+        if angle is not None and angle >= thresholds["spine_axis_angle_threshold_deg"]:
+            codes.add("spine_axis")
+        ordered = [code for code in image.get("violation_type", "").split(";") if code and code in codes]
+        ordered += [code for code in ["spine_positioning", "spine_axis", "spine_artifact"] if code in codes and code not in ordered]
+    else:
+        codes.discard("hip_positioning_rotation")
+        prominence = number(detail.get("hip_lesser_prominence_mm"))
+        structure_missing = (
+            number(detail.get("hip_top_margin_mm")) is None
+            or number(detail.get("hip_lateral_margin_mm")) is None
+            or number(detail.get("hip_bottom_margin_mm")) is None
+        )
+        positioning_bad = hip_positioning_is_bad(point_row, region)
+        if structure_missing or positioning_bad or hip_rotation_is_bad(prominence, thresholds):
+            codes.add("hip_positioning_rotation")
+        ordered = [code for code in image.get("violation_type", "").split(";") if code and code in codes]
+        ordered += [code for code in ["hip_positioning_rotation", "hip_roi"] if code in codes and code not in ordered]
+
+    image["violation_type"] = ";".join(ordered)
+    image["quality_class"] = "1" if codes else "0"
+
+
+def violation_description(row, detail, point_row, thresholds=None):
+    thresholds = thresholds or DEFAULT_THRESHOLDS
     codes = violation_codes(row)
     descriptions = []
     region = row.get("anatomical_region", "")
@@ -127,11 +214,9 @@ def violation_description(row, detail, point_row):
         if hip_positioning_is_bad(point_row, region):
             descriptions.append("Некорректное позиционирование")
         prominence = number(detail.get("hip_lesser_prominence_mm"))
-        if prominence is None:
+        if prominence is None or prominence <= thresholds["hip_lesser_prominence_low_mm"]:
             descriptions.append("Ротация бедра (избыточная)")
-        elif prominence <= HIP_LESSER_PROMINENCE_LOW_THRESHOLD_MM:
-            descriptions.append("Ротация бедра (избыточная)")
-        elif prominence >= HIP_LESSER_PROMINENCE_HIGH_THRESHOLD_MM:
+        elif prominence >= thresholds["hip_lesser_prominence_high_mm"]:
             descriptions.append("Ротация бедра (недостаточная)")
 
     if "hip_roi" in codes:
@@ -155,7 +240,8 @@ def violation_description(row, detail, point_row):
     return "; ".join(unique)
 
 
-def results(submission, work):
+def results(submission, work, thresholds=None):
+    thresholds = thresholds or DEFAULT_THRESHOLDS
     debug = rows(work / "quality_predictions_debug.csv")
     skeleton = {r["member"]: r for r in rows(work / "inference_skeleton.csv")}
     landmarks = {r["member"]: r for r in rows(work / "inference_landmark_predictions_hybrid.csv")}
@@ -170,19 +256,28 @@ def results(submission, work):
         member = detail["member"]
         point_row = landmarks.get(member, {})
         points = visible_landmark_points(point_row, detail)
-        output.append({**row, "id": str(i), "member": member,
-                       "violation_description": violation_description(row, detail, point_row),
-                       "filename": detail.get("filename", Path(member).name),
-                       "width": number(skeleton.get(member, {}).get("columns")),
-                       "height": number(skeleton.get(member, {}).get("rows")),
-                       "landmarks": points, "landmark_model": point_row.get("landmark_model", ""),
-                       "metrics": {k: number(detail.get(k)) for k in ["spine_axis_angle_deg", "hip_lesser_prominence_mm", "hip_top_margin_mm", "hip_bottom_margin_mm", "hip_lateral_margin_mm", "hip_lesser_lower_bottom_margin_mm"]}})
+        item = {**row, "id": str(i), "member": member,
+                "filename": detail.get("filename", Path(member).name),
+                "width": number(skeleton.get(member, {}).get("columns")),
+                "height": number(skeleton.get(member, {}).get("rows")),
+                "landmarks": points, "landmark_model": point_row.get("landmark_model", ""),
+                "metrics": {k: number(detail.get(k)) for k in ["spine_axis_angle_deg", "hip_lesser_prominence_mm", "hip_top_margin_mm", "hip_bottom_margin_mm", "hip_lateral_margin_mm", "hip_lesser_lower_bottom_margin_mm"]}}
+        apply_viewer_thresholds(item, detail, point_row, thresholds)
+        item["violation_description"] = violation_description(item, detail, point_row, thresholds)
+        output.append(item)
     return output
+
+
+def refresh_job_results(job):
+    folder = job["_folder"]
+    job["images"] = results(folder / "submission.csv", folder / "work", threshold_settings(job))
 
 
 def snapshot(job):
     with LOCK:
-        return {k: v for k, v in job.items() if not k.startswith("_")}
+        public = {k: v for k, v in job.items() if not k.startswith("_")}
+        public["thresholds"] = threshold_settings(job)
+        return public
 
 
 def archive_label(header):
@@ -226,9 +321,9 @@ def run_job(job):
     try:
         with (folder / "inference.log").open("w") as log:
             subprocess.run(command, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=3600)
-        images = results(folder / "submission.csv", folder / "work")
         with LOCK:
-            job.update(status="completed", images=images)
+            refresh_job_results(job)
+            job.update(status="completed")
     except Exception:
         with LOCK:
             job.update(status="failed", error="Анализ не завершён. Проверьте зависимости и журнал inference.log в папке задания.")
@@ -387,7 +482,8 @@ class Handler(SimpleHTTPRequestHandler):
                         raise ValueError()
                 job = {"id": key, "name": archive_label(self.headers.get("X-Archive-Name")),
                        "created": time.time(), "status": "queued",
-                       "archived": False, "images": [], "reconstructions": {}, "_input": source, "_folder": folder}
+                       "archived": False, "images": [], "reconstructions": {}, "thresholds": dict(DEFAULT_THRESHOLDS),
+                       "_input": source, "_folder": folder}
                 with LOCK:
                     JOBS[key] = job
                 POOL.submit(run_job, job)
@@ -409,6 +505,21 @@ class Handler(SimpleHTTPRequestHandler):
                     job["reconstructions"][item["id"]] = {"status": "queued"}
                     POOL.submit(reconstruct, job, item)
             return self.send_data(snapshot(job), 202)
+        if len(parts) == 4 and parts[:2] == ["api", "jobs"] and parts[3] == "thresholds":
+            job = JOBS.get(parts[2])
+            if not job:
+                return self.send_data({"error": "Задание не найдено"}, 404)
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                payload = json.loads(self.rfile.read(length).decode("utf-8")) if length else {}
+                thresholds = parse_threshold_payload(payload, job)
+            except (json.JSONDecodeError, UnicodeDecodeError, ValueError) as exc:
+                return self.send_data({"error": str(exc) or "Некорректные пороги"}, 400)
+            with LOCK:
+                job["thresholds"] = thresholds
+                if job.get("status") == "completed":
+                    refresh_job_results(job)
+            return self.send_data(snapshot(job))
         self.send_data({"error": "Маршрут не найден"}, 404)
 
 

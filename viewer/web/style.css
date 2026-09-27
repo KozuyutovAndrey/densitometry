@@ -13,7 +13,7 @@ button:hover,.button:hover{border-color:#9bbab5;background:#f1f7f5}
 button:focus-visible,a:focus-visible{outline:2px solid var(--teal)}
 .heading-actions{display:flex;align-items:center;gap:10px}
 .help{position:relative;display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border:1px solid #b9c7c8;border-radius:50%;color:#62777d;background:#fff;font-size:11px;font-weight:700;line-height:1;cursor:help;vertical-align:middle;text-transform:none;letter-spacing:0}
-.help::after{content:attr(data-tooltip);position:absolute;z-index:20;left:50%;bottom:calc(100% + 9px);transform:translateX(-50%);width:260px;padding:10px 12px;border-radius:7px;background:#163738;color:#fff;font-size:12px;font-weight:400;line-height:1.45;letter-spacing:0;text-align:left;text-transform:none;box-shadow:0 7px 24px #122f3030;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .15s}
+.help::after{content:attr(data-tooltip);position:absolute;z-index:100;left:50%;bottom:calc(100% + 9px);transform:translateX(-50%);width:260px;padding:10px 12px;border-radius:7px;background:#163738;color:#fff;font-size:12px;font-weight:400;line-height:1.45;letter-spacing:0;text-align:left;text-transform:none;box-shadow:0 7px 24px #122f3030;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .15s}
 .help:hover::after,.help:focus::after,.help:focus-visible::after{opacity:1;visibility:visible}
 .help:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 .heading-actions .help::after,.summary>div:last-child .help::after,th:last-child .help::after{left:auto;right:0;transform:none}
@@ -56,6 +56,8 @@ select,input[type=search]{background:white;border:1px solid var(--line);border-r
 select{font-size:12px}
 .workspace{display:grid;grid-template-columns:262px minmax(340px,1fr) 270px;gap:16px;align-items:start}
 .study-list,.examination,.findings{background:white;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.examination,.findings{position:relative;z-index:1;overflow:visible}
+.examination:hover,.examination:focus-within,.findings:hover,.findings:focus-within{z-index:6}
 .list-heading{display:flex;justify-content:space-between;align-items:center;padding:16px 16px 10px}
 h2{font-size:15px;font-weight:600;margin:0}
 h2 span{color:var(--muted);font-size:12px;font-weight:400;margin-left:6px}
@@ -86,9 +88,11 @@ h2 span{color:var(--muted);font-size:12px;font-weight:400;margin-left:6px}
 .tabs button{border:0;border-bottom:2px solid transparent;border-radius:0;padding:11px 0;background:none;color:var(--muted);font-size:12px}
 .tabs button.active{border-color:var(--teal);color:var(--teal);font-weight:600}
 .tabs span{background:#eaf1ef;padding:1px 5px;border-radius:3px;margin-left:4px}
-.viewer-toolbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;font-size:11px;gap:10px}
+.viewer-toolbar{position:relative;z-index:12;display:flex;align-items:center;justify-content:space-between;padding:10px 14px;font-size:11px;gap:10px;overflow:visible}
 .viewer-toolbar>div{display:flex;gap:9px;align-items:center}
-.viewer-toggles{flex-wrap:wrap}
+.viewer-toggles{flex-wrap:wrap;position:relative;z-index:13;overflow:visible}
+.viewer-toggles .help::after{left:0;right:auto;bottom:calc(100% + 10px);transform:none;width:min(260px,calc(100vw - 90px));white-space:normal}
+.viewer-toggles label:last-child .help::after{left:auto;right:0;transform:none}
 .viewer-toggles select{min-width:98px;padding:4px 6px;font-size:11px}
 .viewer-toolbar button{font-size:11px;padding:2px 6px;border:0}
 .viewer-toolbar label{display:flex;align-items:center;gap:5px;color:#687980;white-space:nowrap}
@@ -121,6 +125,17 @@ input[type=checkbox]{accent-color:var(--teal)}
 .finding .symbol{width:19px;height:19px;border-radius:50%;background:#e7f3ed;color:var(--teal);text-align:center;font-size:12px;flex-shrink:0}
 .finding.bad .symbol{background:#fff0d6;color:#b37e26}
 .finding p{margin:0;color:var(--muted);font-size:11px;line-height:1.6}
+.threshold-panel{padding:13px 16px;border-bottom:1px solid #edf0f0;background:#fbfdfc;overflow:hidden}
+.threshold-heading{display:grid;gap:3px;margin-bottom:10px}
+.threshold-heading h3{font-size:11px;line-height:1.35;margin:0;font-weight:600;letter-spacing:0;color:var(--ink)}
+.threshold-heading strong{display:inline-block;font-size:10px;line-height:1.2;color:var(--teal);font-weight:600;white-space:nowrap}
+.threshold-inputs{display:grid;grid-template-columns:1fr;gap:7px}
+.threshold-inputs label{display:grid;grid-template-columns:42px minmax(0,1fr);align-items:center;gap:7px;font-size:10px;color:var(--muted);white-space:nowrap}
+.threshold-inputs input{min-width:0;width:100%;border:1px solid var(--line);border-radius:6px;padding:6px 8px;background:#fff;color:var(--ink);font-size:11px;line-height:1.25}
+.threshold-inputs input:disabled{background:#f3f6f6;color:#687980}
+.threshold-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.threshold-actions button{font-size:11px;padding:4px 8px;max-width:100%}
+.threshold-error{min-height:16px;margin-top:7px;font-size:10px;color:#a54c4c;line-height:1.4;overflow-wrap:anywhere}
 .measurements{padding:17px 18px}
 .measurements h3{font-size:12px;margin:0 0 12px}
 .metric{display:flex;justify-content:space-between;gap:10px;font-size:11px;margin:10px 0;color:var(--muted)}

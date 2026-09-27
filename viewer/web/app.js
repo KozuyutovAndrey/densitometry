@@ -3,7 +3,7 @@ const $ = (id) => document.getElementById(id);
 const state = {
   jobs: [], job: null, image: null, filtered: [], health: null,
   bitmap: null, gradcam: null, gradcamKey: "", zoom: 1, panX: 0, panY: 0, dragging: false, lastX: 0, lastY: 0,
-  pollTimer: null,
+  pollTimer: null, thresholdEditing: false, spineThresholdEditing: false,
   view3d: { yaw: -0.6, pitch: 0.15, scale: 1.3, dragging: false, x: 0, y: 0 },
 };
 
@@ -135,6 +135,8 @@ function updateProcessingOverlay() {
 
 function chooseImage(image) {
   state.image = image;
+  state.thresholdEditing = false;
+  state.spineThresholdEditing = false;
   state.bitmap = null; state.gradcam = null; state.gradcamKey = "";
   state.zoom = 1; state.panX = 0; state.panY = 0;
   renderAll();
@@ -212,6 +214,8 @@ function renderImageDetail() {
   $("meta-image").textContent = image?.image_uid || "—";
   $("image-size").textContent = image?.width && image?.height ? `${image.width} × ${image.height} px` : "—";
   renderFindings();
+  renderSpineThresholds();
+  renderHipThresholds();
   updateGradcamControls();
   update3dPanel();
   if (image && !state.bitmap) loadPreview(); else drawImage();
@@ -234,7 +238,7 @@ function renderFindings() {
     labels.forEach((label) => addFinding(container, label, findingExplanation(label), true));
   }
   const metricNames = {
-    spine_axis_angle_deg: ["Наклон оси", "°"], hip_lesser_prominence_mm: ["Выступание малого вертела", " мм"],
+    spine_axis_angle_deg: ["Наклон оси позвоночника", "°"], hip_lesser_prominence_mm: ["Выступание малого вертела", " мм"],
     hip_top_margin_mm: ["Верхний отступ", " мм"], hip_bottom_margin_mm: ["Нижний отступ", " мм"],
     hip_lateral_margin_mm: ["Боковой отступ", " мм"],
     hip_lesser_lower_bottom_margin_mm: ["Нижний отступ малого вертела", " мм"],
@@ -247,7 +251,7 @@ function renderFindings() {
     measurements.append(row); count++;
   }
   if (!count) measurements.append(node("div", "metric", "Числовые измерения недоступны"));
-  $("source-note").textContent = `Результат локальной пакетной обработки. Landmarks: ${image.landmark_model || "нет данных"}.`;
+  $("source-note").hidden = true;
 }
 
 function updateGradcamControls() {
@@ -288,6 +292,114 @@ function pointByName(image, name) {
 function metricValue(image, key) {
   const value = image?.metrics?.[key];
   return value === null || value === undefined ? null : Number(value);
+}
+
+function currentThresholds() {
+  return state.job?.thresholds || {
+    spine_axis_angle_threshold_deg: 1.979,
+    hip_lesser_prominence_low_mm: 0.2,
+    hip_lesser_prominence_high_mm: 6.346,
+  };
+}
+
+function formatThreshold(value) {
+  return Number(value).toFixed(3).replace(/\.?0+$/, "");
+}
+
+function parseThresholdInput(value, label) {
+  const normalized = String(value || "").trim().replace(",", ".");
+  if (!normalized) throw new Error(`${label}: значение не должно быть пустым`);
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed) || parsed < 0) throw new Error(`${label}: нужно число не меньше 0`);
+  return parsed;
+}
+
+function setSpineThresholdEditorEnabled(enabled) {
+  $("spine-threshold-angle").disabled = !enabled;
+  $("spine-threshold-edit").hidden = enabled;
+  $("spine-threshold-save").hidden = !enabled;
+  $("spine-threshold-cancel").hidden = !enabled;
+}
+
+function renderSpineThresholds() {
+  const panel = $("spine-thresholds");
+  const isSpine = state.image?.anatomical_region === "spine";
+  panel.hidden = !isSpine;
+  if (!isSpine) { state.spineThresholdEditing = false; return; }
+  const thresholds = currentThresholds();
+  if (!state.spineThresholdEditing) {
+    $("spine-threshold-angle").value = formatThreshold(thresholds.spine_axis_angle_threshold_deg);
+    $("spine-threshold-error").textContent = "";
+  }
+  $("spine-threshold-summary").textContent = `${formatThreshold(thresholds.spine_axis_angle_threshold_deg)}°`;
+  setSpineThresholdEditorEnabled(state.spineThresholdEditing);
+}
+
+async function saveSpineThreshold() {
+  if (!state.job) return;
+  try {
+    const angle = parseThresholdInput($("spine-threshold-angle").value, "Порог угла");
+    const updated = await api(`/api/jobs/${encodeURIComponent(state.job.id)}/thresholds`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ spine_axis_angle_threshold_deg: angle }),
+    });
+    const selectedId = state.image?.id;
+    state.jobs = state.jobs.map((job) => job.id === updated.id ? updated : job);
+    state.job = updated;
+    state.image = updated.images.find((image) => image.id === selectedId) || updated.images[0] || null;
+    state.spineThresholdEditing = false;
+    showNotice("Порог оси позвоночника обновлён. Результаты и экспорт пересчитаны.");
+    renderAll();
+  } catch (error) {
+    $("spine-threshold-error").textContent = error.message;
+  }
+}
+
+function setThresholdEditorEnabled(enabled) {
+  ["hip-threshold-low", "hip-threshold-high"].forEach((id) => $(id).disabled = !enabled);
+  $("hip-threshold-edit").hidden = enabled;
+  $("hip-threshold-save").hidden = !enabled;
+  $("hip-threshold-cancel").hidden = !enabled;
+}
+
+function renderHipThresholds() {
+  const panel = $("hip-thresholds");
+  const isHip = ["left_hip", "right_hip"].includes(state.image?.anatomical_region);
+  panel.hidden = !isHip;
+  if (!isHip) { state.thresholdEditing = false; return; }
+  const thresholds = currentThresholds();
+  if (!state.thresholdEditing) {
+    $("hip-threshold-low").value = formatThreshold(thresholds.hip_lesser_prominence_low_mm);
+    $("hip-threshold-high").value = formatThreshold(thresholds.hip_lesser_prominence_high_mm);
+    $("hip-threshold-error").textContent = "";
+  }
+  $("hip-threshold-summary").textContent = `${formatThreshold(thresholds.hip_lesser_prominence_low_mm)}–${formatThreshold(thresholds.hip_lesser_prominence_high_mm)} мм`;
+  setThresholdEditorEnabled(state.thresholdEditing);
+}
+
+async function saveHipThresholds() {
+  if (!state.job) return;
+  try {
+    const low = parseThresholdInput($("hip-threshold-low").value, "Нижняя граница");
+    const high = parseThresholdInput($("hip-threshold-high").value, "Верхняя граница");
+    if (low >= high) throw new Error("Нижняя граница должна быть меньше верхней");
+    const updated = await api(`/api/jobs/${encodeURIComponent(state.job.id)}/thresholds`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ hip_lesser_prominence_low_mm: low, hip_lesser_prominence_high_mm: high }),
+    });
+    const selectedId = state.image?.id;
+    state.jobs = state.jobs.map((job) => job.id === updated.id ? updated : job);
+    state.job = updated;
+    state.image = updated.images.find((image) => image.id === selectedId) || updated.images[0] || null;
+    state.thresholdEditing = false;
+  state.spineThresholdEditing = false;
+    showNotice("Диапазон малого вертела обновлён. Результаты и экспорт пересчитаны.");
+    renderAll();
+  } catch (error) {
+    $("hip-threshold-error").textContent = error.message;
+  }
 }
 
 function imageToCanvas(point, transform) {
@@ -443,7 +555,7 @@ function loadGradcam() {
   state.gradcamKey = key;
   const source = new Image();
   source.onload = () => { if (state.gradcamKey === key) { state.gradcam = source; drawImage(); } };
-  source.onerror = () => { if (state.gradcamKey === key) showNotice("Не удалось построить тепловую карту CNN", true); };
+  source.onerror = () => { if (state.gradcamKey === key) showNotice("Не удалось построить тепловую карту артефактов", true); };
   source.src = `/api/jobs/${encodeURIComponent(state.job.id)}/images/${encodeURIComponent(state.image.id)}/gradcam/artifact.png`;
 }
 
@@ -612,7 +724,7 @@ function setupUpload() {
 async function init() {
   setupViewerEvents(); setupUpload();
   setInterval(updateProcessingOverlay, 1000);
-  $("job-select").addEventListener("change",event=>{state.job=state.jobs.find(j=>j.id===event.target.value);state.image=null;state.bitmap=null;renderAll()});
+  $("job-select").addEventListener("change",event=>{state.job=state.jobs.find(j=>j.id===event.target.value);state.image=null;state.bitmap=null;state.thresholdEditing=false;state.spineThresholdEditing=false;renderAll()});
   ["search","region","quality"].forEach(id=>$(id).addEventListener(id==="search"?"input":"change",renderAll));
   $("refresh").addEventListener("click",()=>loadJobs()); $("landmarks").addEventListener("change",drawImage); $("explain").addEventListener("change",drawImage);
   $("gradcam").addEventListener("change",()=>{updateGradcamControls(); if($("gradcam").checked)loadGradcam(); drawImage()});
@@ -621,6 +733,12 @@ async function init() {
   $("reset").addEventListener("click",()=>{state.zoom=1;state.panX=0;state.panY=0;$("brightness").value=100;$("contrast").value=100;drawImage()});
   $("reset-3d").addEventListener("click",()=>{state.view3d={yaw:-.6,pitch:.15,scale:1.3,dragging:false,x:0,y:0};draw3d()}); $("reconstruct").addEventListener("click",request3d);
   $("tab-2d").addEventListener("click",()=>switchTab(false)); $("tab-3d").addEventListener("click",()=>switchTab(true));
+  $("spine-threshold-edit").addEventListener("click",()=>{state.spineThresholdEditing=true;renderSpineThresholds();$("spine-threshold-angle").focus()});
+  $("spine-threshold-cancel").addEventListener("click",()=>{state.spineThresholdEditing=false;renderSpineThresholds()});
+  $("spine-threshold-save").addEventListener("click",saveSpineThreshold);
+  $("hip-threshold-edit").addEventListener("click",()=>{state.thresholdEditing=true;renderHipThresholds();$("hip-threshold-low").focus()});
+  $("hip-threshold-cancel").addEventListener("click",()=>{state.thresholdEditing=false;renderHipThresholds()});
+  $("hip-threshold-save").addEventListener("click",saveHipThresholds);
   window.addEventListener("resize",()=>{drawImage();draw3d()});
   try { state.health=await api("/api/health"); $("connection").textContent="Локальный сервер подключён";$("connection-dot").classList.add("online");await loadJobs(false); }
   catch(error){$("connection").textContent="Сервер недоступен";showNotice(error.message,true)}
